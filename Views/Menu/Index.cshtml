@@ -1,0 +1,315 @@
+@model QuanVitLonManager.ViewModels.MenuViewModel
+
+@{
+    ViewData["Title"] = "Thực đơn";
+}
+
+<!-- Menu Header -->
+<div class="menu-header">
+    <div class="container">
+        <h1>Thực Đơn Đặc Biệt</h1>
+        <p class="lead">Khám phá các món ăn đặc sản từ trứng vịt lộn được chế biến theo công thức truyền thống kết hợp với phong cách hiện đại.</p>
+    </div>
+</div>
+
+<div class="container">
+    <!-- Filter Section -->
+    <div class="menu-filter">
+        <div class="row g-3">
+            <div class="col-md-4">
+                <input type="text" id="searchInput" class="form-control" placeholder="Tìm kiếm món ăn...">
+            </div>
+            <div class="col-md-4">
+                <select id="categoryFilter" class="form-select">
+                    <option value="">Tất cả danh mục</option>
+                    @foreach (var category in Model.Categories)
+                    {
+                        <option value="@category.Id">@category.Name</option>
+                    }
+                </select>
+            </div>
+            <div class="col-md-4">
+                <select id="priceFilter" class="form-select">
+                    <option value="">Tất cả giá</option>
+                    <option value="0-50000">Dưới 50.000đ</option>
+                    <option value="50000-100000">50.000đ - 100.000đ</option>
+                    <option value="100000-200000">100.000đ - 200.000đ</option>
+                    <option value="200000-1000000">Trên 200.000đ</option>
+                </select>
+            </div>
+        </div>
+    </div>
+
+    <!-- Category Pills -->
+    <div class="category-pills">
+        <div class="category-pill active" data-category="">Tất cả</div>
+        @foreach (var category in Model.Categories)
+        {
+            <div class="category-pill" data-category="@category.Id">@category.Name</div>
+        }
+    </div>
+
+    <!-- Category Sections -->
+    @foreach (var category in Model.Categories)
+    {
+        <div class="category-section mb-5">
+            <h2 class="category-title mb-4">@category.Name</h2>
+            <div class="row">
+                @{
+                    var categoryItems = Model.MenuItems.Where(m => m.CategoryId == category.Id);
+                }
+                @if (categoryItems.Any())
+                {
+                    foreach (var item in categoryItems)
+                    {
+                        <div class="col-md-4 col-sm-6 menu-item mb-4" data-category="@item.CategoryId" data-price="@item.Price">
+                            <div class="card h-100">
+                                @if (!string.IsNullOrEmpty(item.ImageUrl))
+                                {
+                                    <img src="@item.ImageUrl" class="card-img-top" alt="@item.Name">
+                                }
+                                else
+                                {
+                                    <div class="card-img-top bg-light d-flex align-items-center justify-content-center" style="height: 200px;">
+                                        <i class="fas fa-utensils fa-3x text-secondary"></i>
+                                    </div>
+                                }
+                                <div class="card-body">
+                                    <h5 class="card-title">@item.Name</h5>
+                                    <p class="card-text">@item.Description</p>
+                                    <div class="price">@item.Price.ToString("N0") VNĐ</div>
+                                </div>
+                                <div class="card-footer">
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <div class="quantity-controls">
+                                            <button type="button" class="btn btn-sm btn-outline-secondary decrease-quantity">
+                                                <i class="fas fa-minus"></i>
+                                            </button>
+                                            <input type="number" class="form-control form-control-sm quantity-input" value="1" min="1" max="99" style="width: 60px;">
+                                            <button type="button" class="btn btn-sm btn-outline-secondary increase-quantity">
+                                                <i class="fas fa-plus"></i>
+                                            </button>
+                                        </div>
+                                        <button type="button" class="btn btn-add add-to-cart-btn" data-item-id="@item.Id" data-item-name="@item.Name">
+                                            <i class="fas fa-cart-plus me-1"></i> Thêm
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    }
+                }
+                else
+                {
+                    <div class="col-12">
+                        <p class="text-muted">Hiện không có món ăn nào trong danh mục này.</p>
+                    </div>
+                }
+            </div>
+        </div>
+    }
+</div>
+
+@section Styles {
+    <style>
+        .quantity-controls {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        
+        .quantity-input {
+            text-align: center;
+            padding: 0.25rem;
+        }
+        
+        .menu-item .card {
+            position: relative;
+            transition: transform 0.3s ease;
+        }
+        
+        .menu-item .card:hover {
+            transform: translateY(-5px);
+        }
+        
+        .add-success {
+            animation: addSuccess 1s ease;
+        }
+        
+        @@keyframes addSuccess {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+            100% { transform: scale(1); }
+        }
+        
+        #cartBadge {
+            position: relative;
+            animation: cartUpdate 0.5s ease;
+        }
+        
+        @@keyframes cartUpdate {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.2); }
+            100% { transform: scale(1); }
+        }
+    </style>
+}
+
+@section Scripts {
+    <script>
+        $(document).ready(function() {
+            // Search filter
+            $('#searchInput').on('keyup', function() {
+                filterItems();
+            });
+
+            // Category dropdown filter
+            $('#categoryFilter').on('change', function() {
+                filterItems();
+            });
+
+            // Price filter
+            $('#priceFilter').on('change', function() {
+                filterItems();
+            });
+
+            // Category pills
+            $('.category-pill').on('click', function() {
+                $('.category-pill').removeClass('active');
+                $(this).addClass('active');
+                $('#categoryFilter').val($(this).data('category'));
+                filterItems();
+            });
+
+            function filterItems() {
+                var searchText = $('#searchInput').val().toLowerCase();
+                var selectedCategory = $('#categoryFilter').val();
+                var selectedPrice = $('#priceFilter').val();
+                
+                $('.menu-item').each(function() {
+                    var item = $(this);
+                    var itemName = item.find('.card-title').text().toLowerCase();
+                    var itemCategory = item.data('category');
+                    var itemPrice = item.data('price');
+                    
+                    var matchesSearch = itemName.includes(searchText);
+                    var matchesCategory = !selectedCategory || itemCategory == selectedCategory;
+                    
+                    var matchesPrice = true;
+                    if (selectedPrice) {
+                        var priceRange = selectedPrice.split('-');
+                        var minPrice = parseInt(priceRange[0]);
+                        var maxPrice = parseInt(priceRange[1]);
+                        matchesPrice = itemPrice >= minPrice && itemPrice <= maxPrice;
+                    }
+                    
+                    if (matchesSearch && matchesCategory && matchesPrice) {
+                        item.show();
+                    } else {
+                        item.hide();
+                    }
+                });
+            }
+
+            // Thêm hiệu ứng smooth scroll khi click vào category
+            $('.category-pill').on('click', function() {
+                var categoryId = $(this).data('category');
+                $('html, body').animate({
+                    scrollTop: $('#category-' + categoryId).offset().top - 100
+                }, 500);
+            });
+
+            // Quantity controls
+            $('.decrease-quantity').on('click', function() {
+                var input = $(this).siblings('.quantity-input');
+                var value = parseInt(input.val());
+                if (value > 1) {
+                    input.val(value - 1);
+                }
+            });
+
+            $('.increase-quantity').on('click', function() {
+                var input = $(this).siblings('.quantity-input');
+                var value = parseInt(input.val());
+                if (value < 99) {
+                    input.val(value + 1);
+                }
+            });
+
+            $('.quantity-input').on('change', function() {
+                var value = parseInt($(this).val());
+                if (isNaN(value) || value < 1) {
+                    $(this).val(1);
+                } else if (value > 99) {
+                    $(this).val(99);
+                }
+            });
+
+            // Add to cart
+            $('.add-to-cart-btn').on('click', function() {
+                var btn = $(this);
+                var itemId = btn.data('item-id');
+                var itemName = btn.data('item-name');
+                var quantity = btn.closest('.card-footer').find('.quantity-input').val();
+                
+                $.ajax({
+                    url: '@Url.Action("AddToCart", "Cart")',
+                    type: 'POST',
+                    data: {
+                        menuItemId: itemId,
+                        quantity: quantity
+                    },
+                    success: function(response) {
+                        if (response.success) {
+                            // Animate card
+                            btn.closest('.card').addClass('add-success');
+                            setTimeout(function() {
+                                btn.closest('.card').removeClass('add-success');
+                            }, 1000);
+                            
+                            // Update cart badge
+                            $('#cartCount').text(response.cartCount);
+                            $('#cartBadge').addClass('animate');
+                            setTimeout(function() {
+                                $('#cartBadge').removeClass('animate');
+                            }, 500);
+                            
+                            // Show toast notification
+                            Swal.fire({
+                                icon: 'success',
+                                title: 'Thêm món thành công!',
+                                text: `Đã thêm ${quantity} ${itemName} vào giỏ hàng`,
+                                toast: true,
+                                position: 'top-end',
+                                showConfirmButton: false,
+                                timer: 3000,
+                                timerProgressBar: true
+                            });
+                        } else {
+                            Swal.fire({
+                                icon: 'error',
+                                title: 'Lỗi!',
+                                text: response.message || 'Không thể thêm món vào giỏ hàng',
+                                toast: true,
+                                position: 'top-end',
+                                showConfirmButton: false,
+                                timer: 3000
+                            });
+                        }
+                    },
+                    error: function() {
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Lỗi!',
+                            text: 'Đã có lỗi xảy ra, vui lòng thử lại',
+                            toast: true,
+                            position: 'top-end',
+                            showConfirmButton: false,
+                            timer: 3000
+                        });
+                    }
+                });
+            });
+        });
+    </script>
+}

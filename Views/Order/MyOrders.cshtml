@@ -1,0 +1,240 @@
+@model QuanVitLonManager.ViewModels.MyOrdersViewModel
+@using QuanVitLonManager.Models
+@{
+    ViewData["Title"] = "Đơn hàng của tôi";
+}
+
+<div class="container mt-4">
+    <h1 class="mb-4">
+        <i class="fas fa-shopping-bag me-2"></i>Đơn hàng của tôi
+    </h1>
+
+    @if (TempData["SuccessMessage"] != null)
+    {
+        <div class="alert alert-success alert-dismissible fade show" role="alert">
+            <i class="fas fa-check-circle me-2"></i>@TempData["SuccessMessage"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+
+    @if (TempData["ErrorMessage"] != null)
+    {
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+            <i class="fas fa-exclamation-circle me-2"></i>@TempData["ErrorMessage"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+
+    @if (!Model.IsAuthenticated)
+    {
+        <div class="card shadow-sm mb-4">
+            <div class="card-body">
+                <h4 class="mb-3">Tra cứu đơn hàng</h4>
+                <form asp-action="MyOrders" method="post">
+                    <div class="row g-3 align-items-end">
+                        <div class="col-md-8">
+                            <label asp-for="PhoneNumber" class="form-label">Số điện thoại</label>
+                            <input asp-for="PhoneNumber" class="form-control" placeholder="Nhập số điện thoại bạn đã dùng khi đặt hàng">
+                            <span asp-validation-for="PhoneNumber" class="text-danger"></span>
+                        </div>
+                        <div class="col-md-4">
+                            <button type="submit" class="btn btn-primary w-100">
+                                <i class="fas fa-search me-2"></i>Tra cứu
+                            </button>
+                        </div>
+                    </div>
+                </form>
+                
+                @if (Model.HasSearched && !Model.Orders.Any())
+                {
+                    <div class="alert alert-info mt-3" role="alert">
+                        <i class="fas fa-info-circle me-2"></i>Không tìm thấy đơn hàng nào với số điện thoại <strong>@Model.PhoneNumber</strong>.
+                    </div>
+                }
+                
+                <div class="mt-3 text-center">
+                    <a asp-controller="Account" asp-action="Login" class="btn btn-outline-secondary btn-sm">
+                        <i class="fas fa-sign-in-alt me-1"></i>Đăng nhập để xem tất cả đơn hàng
+                    </a>
+                </div>
+            </div>
+        </div>
+    }
+
+    @if (!Model.Orders.Any())
+    {
+        @if (Model.IsAuthenticated || Model.HasSearched)
+        {
+            <div class="alert alert-info" role="alert">
+                <i class="fas fa-info-circle me-2"></i>
+                @if (Model.IsAuthenticated)
+                {
+                    <span>Bạn chưa có đơn hàng nào.</span>
+                }
+                else
+                {
+                    <span>Không tìm thấy đơn hàng nào với số điện thoại <strong>@Model.PhoneNumber</strong>.</span>
+                }
+            </div>
+        }
+        
+        <div class="text-center mt-4">
+            <a asp-controller="Menu" asp-action="Index" class="btn btn-primary">
+                <i class="fas fa-utensils me-2"></i>Đặt món ngay
+            </a>
+        </div>
+    }
+    else
+    {
+        <div class="row">
+            @foreach (var order in Model.Orders)
+            {
+                <div class="col-md-6 mb-4">
+                    <div class="card h-100 order-card @GetOrderStatusClass(order.Status)">
+                        <div class="card-header d-flex justify-content-between align-items-center">
+                            <h5 class="mb-0">
+                                <i class="fas fa-receipt me-2"></i>Đơn hàng #@order.Id
+                            </h5>
+                            <span class="badge @GetOrderStatusBadgeClass(order.Status)">
+                                @GetOrderStatusText(order.Status)
+                            </span>
+                        </div>
+                        <div class="card-body">
+                            <div class="mb-3">
+                                <p><strong><i class="far fa-calendar-alt me-2"></i>Ngày đặt:</strong> @order.OrderDate.ToString("dd/MM/yyyy HH:mm")</p>
+                                <p><strong><i class="fas fa-money-bill-wave me-2"></i>Tổng tiền:</strong> @string.Format("{0:N0} VNĐ", order.TotalAmount)</p>
+                                <p>
+                                    <strong><i class="fas fa-credit-card me-2"></i>Thanh toán:</strong>
+                                    @if (order.PaymentMethod == PaymentMethod.Cash)
+                                    {
+                                        <i class="fas fa-money-bill text-success" title="Tiền mặt"></i> <span>Tiền mặt</span>
+                                    }
+                                    else
+                                    {
+                                        <i class="fas fa-university text-primary" title="Chuyển khoản"></i> <span>Chuyển khoản</span>
+                                    }
+                                </p>
+                                @if (!string.IsNullOrEmpty(order.Notes))
+                                {
+                                    <p><strong><i class="fas fa-sticky-note me-2"></i>Ghi chú:</strong> @order.Notes</p>
+                                }
+                            </div>
+                        </div>
+                        <div class="card-footer bg-transparent border-top-0">
+                            <div class="d-flex justify-content-between">
+                                @if (Model.IsAuthenticated)
+                                {
+                                    <a asp-action="Details" asp-route-id="@order.Id" class="btn btn-info">
+                                        <i class="fas fa-info-circle me-1"></i>Chi tiết
+                                    </a>
+                                    @if (order.Status == OrderStatus.Pending || order.Status == OrderStatus.Confirmed)
+                                    {
+                                        <form asp-action="Cancel" asp-route-id="@order.Id" method="post" onsubmit="return confirm('Bạn có chắc chắn muốn hủy đơn hàng này?');">
+                                            @Html.AntiForgeryToken()
+                                            <button type="submit" class="btn btn-danger">
+                                                <i class="fas fa-times-circle me-1"></i>Hủy đơn
+                                            </button>
+                                        </form>
+                                    }
+                                }
+                                else
+                                {
+                                    <a asp-action="Details" asp-route-id="@order.Id" asp-route-phoneNumber="@Model.PhoneNumber" class="btn btn-info w-100">
+                                        <i class="fas fa-info-circle me-1"></i>Xem chi tiết
+                                    </a>
+                                }
+                                
+                                @if (order.Status == OrderStatus.Completed && Model.IsAuthenticated)
+                                {
+                                    <a asp-controller="CustomerBill" asp-action="Details" asp-route-id="@order.Id" class="btn btn-success">
+                                        <i class="fas fa-file-invoice me-1"></i>Xem hóa đơn
+                                    </a>
+                                }
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            }
+        </div>
+    }
+</div>
+
+<style>
+    .order-card {
+        transition: transform 0.2s, box-shadow 0.2s;
+    }
+    
+    .order-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+    }
+    
+    .order-card.pending-order {
+        border-left: 5px solid #ffc107;
+    }
+    
+    .order-card.confirmed-order {
+        border-left: 5px solid #17a2b8;
+    }
+    
+    .order-card.preparing-order {
+        border-left: 5px solid #6f42c1;
+    }
+    
+    .order-card.ready-order {
+        border-left: 5px solid #fd7e14;
+    }
+    
+    .order-card.completed-order {
+        border-left: 5px solid #28a745;
+    }
+    
+    .order-card.cancelled-order {
+        border-left: 5px solid #dc3545;
+    }
+</style>
+
+@functions {
+    public string GetOrderStatusText(OrderStatus status)
+    {
+        return status switch
+        {
+            OrderStatus.Pending => "Đang chờ xử lý",
+            OrderStatus.Confirmed => "Đã xác nhận",
+            OrderStatus.Preparing => "Đang chuẩn bị",
+            OrderStatus.Completed => "Hoàn thành",
+            OrderStatus.Cancelled => "Đã hủy",
+            _ => "Không xác định"
+        };
+    }
+
+    public string GetOrderStatusBadgeClass(OrderStatus status)
+    {
+        return status switch
+        {
+            OrderStatus.Pending => "bg-warning text-dark",
+            OrderStatus.Confirmed => "bg-info text-white",
+            OrderStatus.Preparing => "bg-purple text-white",
+            OrderStatus.Completed => "bg-success text-white",
+            OrderStatus.Cancelled => "bg-danger text-white",
+            _ => "bg-secondary text-white"
+        };
+    }
+
+    public string GetOrderStatusClass(OrderStatus status)
+    {
+        return status switch
+        {
+            OrderStatus.Pending => "pending-order",
+            OrderStatus.Confirmed => "confirmed-order",
+            OrderStatus.Preparing => "preparing-order",
+            OrderStatus.Completed => "completed-order",
+            OrderStatus.Cancelled => "cancelled-order",
+            _ => ""
+        };
+    }
+}
+
+@section Scripts {
+    @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
+} 

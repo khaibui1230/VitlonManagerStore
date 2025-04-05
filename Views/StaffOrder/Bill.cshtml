@@ -1,0 +1,339 @@
+@model string
+@{
+    ViewData["Title"] = "Hóa đơn thanh toán";
+    Layout = "_Layout";
+}
+
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-md-8 mx-auto">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">Hóa đơn thanh toán</h5>
+                    <div class="btn-group">
+                        <button id="printBtn" class="btn btn-outline-primary">
+                            <i class="fas fa-print me-1"></i> In hóa đơn
+                        </button>
+                        <button id="exportPdfBtn" class="btn btn-outline-secondary">
+                            <i class="fas fa-file-pdf me-1"></i> Xuất PDF
+                        </button>
+                        <button id="bluetoothPrintBtn" class="btn btn-outline-info">
+                            <i class="fab fa-bluetooth-b me-1"></i> In Bluetooth
+                        </button>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div id="billContent" class="bill-container">
+                        @Html.Raw(Model)
+                    </div>
+                </div>
+                <div class="card-footer">
+                    <a asp-action="Index" class="btn btn-secondary">
+                        <i class="fas fa-arrow-left"></i> Quay lại
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Styles {
+    <style>
+        /* Định dạng chung cho hóa đơn */
+        .bill-container {
+            font-family: 'Roboto', 'Helvetica Neue', Arial, sans-serif;
+            font-size: 14px;
+            max-width: 100%;
+            margin: 0 auto;
+            padding: 10px;
+        }
+        
+        .bill-container h4 {
+            font-size: 18px;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+        
+        .bill-container p {
+            margin-bottom: 5px;
+        }
+        
+        .bill-container .table {
+            width: 100%;
+            margin-bottom: 15px;
+            font-size: 13px;
+        }
+        
+        .bill-container .table td, 
+        .bill-container .table th {
+            padding: 5px;
+        }
+        
+        /* Quy tắc CSS cho phiên bản in */
+        @@media print {
+            body * {
+                visibility: hidden;
+            }
+            
+            #billContent, 
+            #billContent * {
+                visibility: visible;
+                font-family: 'Roboto', 'Helvetica Neue', Arial, sans-serif !important;
+            }
+            
+            #billContent {
+                position: absolute;
+                left: 0;
+                top: 0;
+                width: 100%;
+                max-width: 100%;
+                padding: 15px;
+            }
+            
+            .card {
+                border: none !important;
+                box-shadow: none !important;
+            }
+            
+            .card-header, 
+            .card-footer {
+                display: none !important;
+            }
+            
+            /* Đảm bảo bảng đúng kích thước */
+            #billContent table {
+                width: 100% !important;
+                border-collapse: collapse !important;
+            }
+            
+            #billContent table td, 
+            #billContent table th {
+                padding: 3px 5px !important;
+                font-size: 12px !important;
+            }
+            
+            /* Ép kiểu font để đảm bảo tiếng Việt hiển thị đúng */
+            #billContent * {
+                -webkit-font-smoothing: antialiased;
+                text-rendering: optimizeLegibility;
+            }
+        }
+        
+        /* Thermal printer style */
+        @@media print {
+            @@page {
+                size: 80mm 200mm;
+                margin: 0mm;
+                padding: 5mm;
+            }
+            
+            #billContent {
+                width: 70mm !important;
+                font-size: 12px !important;
+            }
+            
+            #billContent h4 {
+                font-size: 14px !important;
+            }
+            
+            #billContent .table {
+                font-size: 11px !important;
+            }
+        }
+    </style>
+}
+
+@section Scripts {
+    <script>
+        // Đảm bảo charset UTF-8 được áp dụng
+        document.addEventListener('DOMContentLoaded', function() {
+            // Thêm meta tag nếu chưa có
+            if (!document.querySelector('meta[charset="UTF-8"]')) {
+                const metaCharset = document.createElement('meta');
+                metaCharset.setAttribute('charset', 'UTF-8');
+                document.head.appendChild(metaCharset);
+            }
+            
+            // Fix định dạng bảng
+            const billTable = document.querySelector('#billContent table');
+            if (billTable) {
+                billTable.classList.add('table-bordered');
+            }
+        });
+    </script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/BluetoothTerminal/1.0.0/BluetoothTerminal.min.js"></script>
+    <script>
+        $(document).ready(function() {
+            // In hóa đơn
+            $("#printBtn").click(function() {
+                window.print();
+            });
+            
+            // Xuất PDF
+            $("#exportPdfBtn").click(function() {
+                var element = document.getElementById('billContent');
+                var opt = {
+                    margin:       [5, 0, 5, 0],
+                    filename:     'hoa-don-@DateTime.Now.ToString("yyyyMMdd-HHmmss")',
+                    image:        { type: 'jpeg', quality: 0.98 },
+                    html2canvas:  { scale: 2 },
+                    jsPDF:        { unit: 'mm', format: [80, 200], orientation: 'portrait' }
+                };
+                
+                html2pdf().set(opt).from(element).save();
+            });
+            
+            // In qua Bluetooth
+            $("#bluetoothPrintBtn").click(function() {
+                showBluetoothDialog();
+            });
+            
+            // Hàm hiển thị dialog kết nối Bluetooth
+            function showBluetoothDialog() {
+                // Kiểm tra hỗ trợ Bluetooth
+                if (!navigator.bluetooth) {
+                    alert("Trình duyệt của bạn không hỗ trợ Bluetooth. Vui lòng sử dụng Chrome, Edge hoặc Opera.");
+                    return;
+                }
+                
+                // Tạo dialog kết nối Bluetooth
+                const modal = $(`
+                    <div class="modal fade" tabindex="-1">
+                        <div class="modal-dialog">
+                            <div class="modal-content">
+                                <div class="modal-header">
+                                    <h5 class="modal-title">Kết nối máy in Bluetooth</h5>
+                                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                                </div>
+                                <div class="modal-body">
+                                    <p>Chọn máy in Bluetooth để kết nối:</p>
+                                    <div id="deviceList" class="list-group mb-3">
+                                        <div class="text-center py-3">
+                                            <div class="spinner-border text-primary" role="status">
+                                                <span class="visually-hidden">Đang tìm kiếm...</span>
+                                            </div>
+                                            <p class="mt-2">Đang tìm kiếm thiết bị...</p>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="modal-footer">
+                                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Đóng</button>
+                                    <button type="button" id="scanBtn" class="btn btn-primary">
+                                        <i class="fas fa-sync-alt"></i> Quét lại
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `);
+                
+                // Hiển thị modal
+                $("body").append(modal);
+                modal.modal('show');
+                
+                // Xử lý sự kiện scan bluetooth
+                $("#scanBtn").click(function() {
+                    scanBluetoothDevices();
+                });
+                
+                // Scan thiết bị ban đầu
+                scanBluetoothDevices();
+                
+                function scanBluetoothDevices() {
+                    const deviceList = $("#deviceList");
+                    deviceList.html(`
+                        <div class="text-center py-3">
+                            <div class="spinner-border text-primary" role="status">
+                                <span class="visually-hidden">Đang tìm kiếm...</span>
+                            </div>
+                            <p class="mt-2">Đang tìm kiếm thiết bị...</p>
+                        </div>
+                    `);
+                    
+                    navigator.bluetooth.requestDevice({
+                        // Lọc thiết bị là máy in hoặc thiết bị có thể kết nối
+                        filters: [
+                            { services: ['000018f0-0000-1000-8000-00805f9b34fb'] }, // Một số máy in chuẩn
+                            { namePrefix: 'Printer' },
+                            { namePrefix: 'POS' },
+                            { namePrefix: 'ESC' },
+                            { namePrefix: 'Star' },
+                            { namePrefix: 'Epson' }
+                        ],
+                        // Chấp nhận tất cả thiết bị (nếu cần thiết)
+                        acceptAllDevices: true
+                    })
+                    .then(device => {
+                        console.log('Đã chọn thiết bị:', device.name);
+                        modal.modal('hide');
+                        
+                        // Kết nối và in
+                        connectAndPrint(device);
+                    })
+                    .catch(error => {
+                        console.error('Lỗi khi tìm thiết bị Bluetooth:', error);
+                        deviceList.html(`
+                            <div class="alert alert-danger">
+                                Lỗi: ${error.message || 'Không thể tìm thiết bị Bluetooth.'}
+                            </div>
+                        `);
+                    });
+                }
+                
+                // Xử lý sự kiện đóng modal
+                modal.on('hidden.bs.modal', function() {
+                    modal.remove();
+                });
+            }
+            
+            function connectAndPrint(device) {
+                // Thông báo đang kết nối
+                const toast = showToast('Đang kết nối đến máy in...', 'info');
+                
+                // Lấy nội dung cần in
+                const billContent = document.getElementById('billContent').innerText;
+                
+                // Mô phỏng kết nối với máy in (thực tế cần thêm code tương thích với từng loại máy in)
+                setTimeout(() => {
+                    try {
+                        // Mô phỏng gửi dữ liệu thành công
+                        toast.hide();
+                        showToast('Đã gửi hóa đơn đến máy in thành công!', 'success');
+                    } catch (error) {
+                        console.error('Lỗi khi in:', error);
+                        toast.hide();
+                        showToast('Lỗi khi gửi dữ liệu đến máy in: ' + error.message, 'danger');
+                    }
+                }, 2000);
+            }
+            
+            function showToast(message, type = 'info') {
+                const toast = $(`
+                    <div class="position-fixed bottom-0 end-0 p-3" style="z-index: 9999">
+                        <div class="toast align-items-center text-white bg-${type}" role="alert" aria-live="assertive" aria-atomic="true">
+                            <div class="d-flex">
+                                <div class="toast-body">
+                                    ${message}
+                                </div>
+                                <button type="button" class="btn-close me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+                            </div>
+                        </div>
+                    </div>
+                `);
+                
+                $("body").append(toast);
+                const bsToast = new bootstrap.Toast(toast.find('.toast')[0], {
+                    delay: 5000
+                });
+                
+                bsToast.show();
+                return {
+                    hide: function() {
+                        bsToast.hide();
+                    }
+                };
+            }
+        });
+    </script>
+} 

@@ -1,0 +1,45 @@
+@{
+    ViewData["Title"] = "User Information";
+}
+
+<div class="container py-4">
+    <h1>User Information</h1>
+    
+    <div class="card mt-4">
+        <div class="card-header">
+            <h5>Current User Details</h5>
+        </div>
+        <div class="card-body">
+            <p><strong>Is Authenticated:</strong> @User.Identity?.IsAuthenticated</p>
+            <p><strong>Username:</strong> @User.Identity?.Name</p>
+            
+            <h6 class="mt-3">Roles:</h6>
+            <ul>
+                @if (User.IsInRole("Admin"))
+                {
+                    <li>Admin</li>
+                }
+                @if (User.IsInRole("Staff"))
+                {
+                    <li>Staff</li>
+                }
+                @if (User.IsInRole("Chef"))
+                {
+                    <li>Chef</li>
+                }
+                @if (User.IsInRole("Customer"))
+                {
+                    <li>Customer</li>
+                }
+            </ul>
+            
+            <h6 class="mt-3">Claims:</h6>
+            <ul>
+                @foreach (var claim in User.Claims)
+                {
+                    <li>@claim.Type: @claim.Value</li>
+                }
+            </ul>
+        </div>
+    </div>
+</div>

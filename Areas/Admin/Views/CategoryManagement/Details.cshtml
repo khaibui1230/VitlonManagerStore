@@ -1,0 +1,169 @@
+@model Category
+@{
+    ViewData["Title"] = "Chi tiết danh mục";
+    Layout = "_AdminLayout";
+}
+
+<div class="container-fluid px-4">
+    <h1 class="mt-4">Chi tiết danh mục</h1>
+    <ol class="breadcrumb mb-4">
+        <li class="breadcrumb-item"><a href="@Url.Action("Index", "Dashboard", new { area = "Admin" })">Dashboard</a></li>
+        <li class="breadcrumb-item"><a href="@Url.Action("Index", "CategoryManagement", new { area = "Admin" })">Danh mục</a></li>
+        <li class="breadcrumb-item active">Chi tiết</li>
+    </ol>
+    
+    <div class="card mb-4">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <div>
+                <i class="fas fa-tag me-1"></i>
+                @Model.Name
+            </div>
+            <div>
+                <a asp-action="Edit" asp-route-id="@Model.Id" class="btn btn-primary btn-sm">
+                    <i class="fas fa-edit me-1"></i> Chỉnh sửa
+                </a>
+                <a asp-action="Index" class="btn btn-secondary btn-sm">
+                    <i class="fas fa-list me-1"></i> Quay lại danh sách
+                </a>
+            </div>
+        </div>
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-6">
+                    <h5 class="border-bottom pb-2">Thông tin cơ bản</h5>
+                    <dl class="row">
+                        <dt class="col-sm-4">Tên danh mục:</dt>
+                        <dd class="col-sm-8">@Model.Name</dd>
+                        
+                        <dt class="col-sm-4">Mô tả:</dt>
+                        <dd class="col-sm-8">@(string.IsNullOrEmpty(Model.Description) ? "Không có mô tả" : Model.Description)</dd>
+                        
+                        <dt class="col-sm-4">Thứ tự hiển thị:</dt>
+                        <dd class="col-sm-8">@Model.DisplayOrder</dd>
+                        
+                        <dt class="col-sm-4">Trạng thái:</dt>
+                        <dd class="col-sm-8">
+                            @if (Model.IsActive)
+                            {
+                                <span class="badge bg-success">Đang hiển thị</span>
+                            }
+                            else
+                            {
+                                <span class="badge bg-danger">Ẩn</span>
+                            }
+                        </dd>
+                        
+                        <dt class="col-sm-4">
+                            Thời gian tạo
+                        </dt>
+                        <dd class="col-sm-8">
+                            <span class="badge bg-primary">
+                                <i class="fas fa-calendar me-1"></i>
+                                Chưa ghi nhận
+                            </span>
+                        </dd>
+                        <dt class="col-sm-4">
+                            Lần cập nhật cuối
+                        </dt>
+                        <dd class="col-sm-8">
+                            <span class="badge bg-info">
+                                <i class="fas fa-edit me-1"></i>
+                                Chưa ghi nhận
+                            </span>
+                        </dd>
+                    </dl>
+                </div>
+                
+                <div class="col-md-6">
+                    <div class="card">
+                        <div class="card-header">
+                            <i class="fas fa-utensils me-1"></i>
+                            Món ăn trong danh mục
+                        </div>
+                        <div class="card-body">
+                            @if (ViewBag.MenuItems != null && ViewBag.MenuItems.Count > 0)
+                            {
+                                <div class="table-responsive">
+                                    <table class="table table-sm table-hover">
+                                        <thead>
+                                            <tr>
+                                                <th>Tên món</th>
+                                                <th>Giá</th>
+                                                <th>Trạng thái</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            @foreach (var item in ViewBag.MenuItems)
+                                            {
+                                                <tr>
+                                                    <td>
+                                                        <a href="@Url.Action("Details", "MenuManagement", new { area = "Admin", id = item.Id })">
+                                                            @item.Name
+                                                        </a>
+                                                    </td>
+                                                    <td>@item.Price.ToString("N0") đ</td>
+                                                    <td>
+                                                        @if (item.IsAvailable)
+                                                        {
+                                                            <span class="badge bg-success">Có sẵn</span>
+                                                        }
+                                                        else
+                                                        {
+                                                            <span class="badge bg-danger">Hết hàng</span>
+                                                        }
+                                                    </td>
+                                                </tr>
+                                            }
+                                        </tbody>
+                                    </table>
+                                </div>
+                                
+                                @if (ViewBag.TotalMenuItems > ViewBag.MenuItems.Count)
+                                {
+                                    <div class="text-center mt-3">
+                                        <a href="@Url.Action("Index", "MenuManagement", new { area = "Admin", categoryId = Model.Id })" class="btn btn-sm btn-outline-primary">
+                                            Xem tất cả @ViewBag.TotalMenuItems món ăn
+                                        </a>
+                                    </div>
+                                }
+                            }
+                            else
+                            {
+                                <div class="alert alert-info">
+                                    <i class="fas fa-info-circle me-1"></i>
+                                    Không có món ăn nào trong danh mục này.
+                                </div>
+                                
+                                <a href="@Url.Action("Create", "MenuManagement", new { area = "Admin", categoryId = Model.Id })" class="btn btn-sm btn-primary">
+                                    <i class="fas fa-plus me-1"></i> Thêm món ăn mới vào danh mục
+                                </a>
+                            }
+                        </div>
+                    </div>
+                    
+                    @if (ViewBag.StatisticsData != null)
+                    {
+                        <div class="card mt-4">
+                            <div class="card-header">
+                                <i class="fas fa-chart-pie me-1"></i>
+                                Thống kê
+                            </div>
+                            <div class="card-body">
+                                <div class="row text-center">
+                                    <div class="col-6">
+                                        <h5>@ViewBag.StatisticsData.TotalOrderItems</h5>
+                                        <p class="text-muted">Lượt đặt hàng</p>
+                                    </div>
+                                    <div class="col-6">
+                                        <h5>@ViewBag.StatisticsData.TotalRevenue.ToString("N0") đ</h5>
+                                        <p class="text-muted">Doanh thu</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+</div> 

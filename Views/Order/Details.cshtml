@@ -1,0 +1,227 @@
+@model QuanVitLonManager.Models.Order
+@using QuanVitLonManager.Models
+@{
+    ViewData["Title"] = $"Chi tiết đơn hàng #{Model.Id}";
+}
+
+<div class="container mt-4">
+    <div class="mb-4">
+        <a asp-action="MyOrders" class="btn btn-outline-primary">
+            <i class="fas fa-arrow-left me-2"></i>Quay lại đơn hàng của tôi
+        </a>
+    </div>
+
+    <div class="card">
+        <div class="card-header bg-primary text-white">
+            <div class="d-flex justify-content-between align-items-center">
+                <h3 class="mb-0">
+                    <i class="fas fa-receipt me-2"></i>Chi tiết đơn hàng #@Model.Id
+                </h3>
+                <span class="badge @GetOrderStatusBadgeClass(Model.Status)">
+                    @GetOrderStatusText(Model.Status)
+                </span>
+            </div>
+        </div>
+        <div class="card-body">
+            <div class="row mb-4">
+                <div class="col-md-6">
+                    <h5 class="mb-3"><i class="fas fa-info-circle me-2"></i>Thông tin đơn hàng</h5>
+                    <p><strong><i class="far fa-calendar-alt me-2"></i>Ngày đặt:</strong> @Model.OrderDate.ToString("dd/MM/yyyy HH:mm")</p>
+                    <p><strong><i class="fas fa-table me-2"></i>Bàn số:</strong> @(Model.Table?.TableNumber ?? "Không có")</p>
+                    @if (!string.IsNullOrEmpty(Model.Notes))
+                    {
+                        <p><strong><i class="fas fa-sticky-note me-2"></i>Ghi chú:</strong> @Model.Notes</p>
+                    }
+                </div>
+                <div class="col-md-6">
+                    <h5 class="mb-3"><i class="fas fa-money-bill-wave me-2"></i>Thông tin thanh toán</h5>
+                    <p><strong>Tổng tiền:</strong> @string.Format("{0:N0} VNĐ", Model.TotalAmount)</p>
+                    <p><strong>Hình thức thanh toán:</strong> 
+                        @if (Model.PaymentMethod == PaymentMethod.Cash)
+                        {
+                            <span class="badge bg-success"><i class="fas fa-money-bill-wave me-1"></i>Tiền mặt</span>
+                        }
+                        else if (Model.PaymentMethod == PaymentMethod.Card)
+                        {
+                            <span class="badge bg-primary"><i class="fas fa-credit-card me-1"></i>Thẻ tín dụng/ghi nợ</span>
+                        }
+                        else if (Model.PaymentMethod == PaymentMethod.MoMo)
+                        {
+                            <span class="badge bg-danger"><i class="fas fa-wallet me-1"></i>Ví MoMo</span>
+                        }
+                        else
+                        {
+                            <span class="badge bg-info"><i class="fas fa-university me-1"></i>Chuyển khoản</span>
+                        }
+                    </p>
+                    <p>
+                        <strong>Trạng thái thanh toán:</strong>
+                        @if (Model.PaymentStatus == PaymentStatus.Paid)
+                        {
+                            <span class="badge bg-success"><i class="fas fa-check-circle me-1"></i>Đã thanh toán</span>
+                            <small class="d-block mt-1 text-muted">Thanh toán vào lúc: @Model.PaymentDate?.ToString("dd/MM/yyyy HH:mm")</small>
+                        }
+                        else
+                        {
+                            <span class="badge bg-warning text-dark"><i class="fas fa-clock me-1"></i>Chưa thanh toán</span>
+                        }
+                    </p>
+                    <p><strong>Trạng thái đơn hàng:</strong> <span class="badge @GetOrderStatusBadgeClass(Model.Status)">@GetOrderStatusText(Model.Status)</span></p>
+                </div>
+            </div>
+
+            <h5 class="mb-3"><i class="fas fa-utensils me-2"></i>Các món đã đặt</h5>
+            <div class="table-responsive">
+                <table class="table table-hover table-striped">
+                    <thead class="table-light">
+                        <tr>
+                            <th scope="col" style="width: 20%">Hình ảnh</th>
+                            <th scope="col" style="width: 40%">Tên món</th>
+                            <th scope="col" style="width: 10%">Số lượng</th>
+                            <th scope="col" style="width: 15%">Đơn giá</th>
+                            <th scope="col" style="width: 15%">Thành tiền</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var item in Model.OrderDetails)
+                        {
+                            <tr>
+                                <td>
+                                    @if (item.MenuItem != null && !string.IsNullOrEmpty(item.MenuItem.ImageUrl))
+                                    {
+                                        <img src="@item.MenuItem.ImageUrl" alt="@item.MenuItem.Name" class="img-thumbnail" style="max-height: 80px;">
+                                    }
+                                    else
+                                    {
+                                        <div class="bg-light text-center p-2 rounded">
+                                            <i class="fas fa-image fa-2x text-muted"></i>
+                                        </div>
+                                    }
+                                </td>
+                                <td>
+                                    <h6 class="mb-0">@(item.MenuItem?.Name ?? "Món không tồn tại")</h6>
+                                    @if (item.MenuItem?.Category != null)
+                                    {
+                                        <small class="text-muted">@item.MenuItem.Category.Name</small>
+                                    }
+                                </td>
+                                <td>@item.Quantity</td>
+                                <td>@string.Format("{0:N0} VNĐ", item.Price)</td>
+                                <td>@string.Format("{0:N0} VNĐ", item.Price * item.Quantity)</td>
+                            </tr>
+                        }
+                    </tbody>
+                    <tfoot class="table-light fw-bold">
+                        <tr>
+                            <td colspan="4" class="text-end">Tổng cộng:</td>
+                            <td>@string.Format("{0:N0} VNĐ", Model.TotalAmount)</td>
+                        </tr>
+                    </tfoot>
+                </table>
+            </div>
+        </div>
+        <div class="card-footer">
+            <div class="d-flex justify-content-between">
+                <div>
+                    <a asp-action="MyOrders" class="btn btn-secondary">
+                        <i class="fas fa-list me-1"></i>Danh sách đơn hàng
+                    </a>
+                </div>
+                <div>
+                    @if (Model.Status == OrderStatus.Pending || Model.Status == OrderStatus.Confirmed)
+                    {
+                        <a asp-action="EditOrder" asp-route-id="@Model.Id" class="btn btn-warning me-2">
+                            <i class="fas fa-edit me-1"></i>Chỉnh sửa đơn hàng
+                        </a>
+                        
+                        <form asp-action="Cancel" asp-route-id="@Model.Id" method="post" class="d-inline" onsubmit="return confirm('Bạn có chắc chắn muốn hủy đơn hàng này?');">
+                            @Html.AntiForgeryToken()
+                            <button type="submit" class="btn btn-danger">
+                                <i class="fas fa-times-circle me-1"></i>Hủy đơn hàng
+                            </button>
+                        </form>
+                    }
+                    @if (Model.Status == OrderStatus.Completed && Model.PaymentStatus == PaymentStatus.Paid)
+                    {
+                        <a asp-controller="CustomerBill" asp-action="Details" asp-route-id="@Model.Id" class="btn btn-success">
+                            <i class="fas fa-file-invoice me-1"></i>Xem hóa đơn
+                        </a>
+                    }
+                    @if (Model.PaymentStatus == PaymentStatus.Unpaid)
+                    {
+                        <a asp-controller="Payment" asp-action="Process" asp-route-id="@Model.Id" class="btn btn-primary">
+                            <i class="fas fa-credit-card me-1"></i>Thanh toán ngay
+                        </a>
+                        
+                        @if (Model.Status != OrderStatus.Cancelled)
+                        {
+                            <div class="mt-2 text-muted">
+                                <small><i class="fas fa-info-circle me-1"></i>Bạn có thể thanh toán sau khi ăn xong.</small>
+                                <small>Nhân viên sẽ giúp bạn thanh toán tại quán.</small>
+                            </div>
+                        }
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+
+    @if (Model.Status == OrderStatus.Pending)
+    {
+        <div class="alert alert-info mt-4" role="alert">
+            <i class="fas fa-info-circle me-2"></i>Đơn hàng của bạn đang chờ xác nhận từ nhà hàng. Vui lòng đợi trong giây lát!
+        </div>
+    }
+    else if (Model.Status == OrderStatus.Confirmed)
+    {
+        <div class="alert alert-info mt-4" role="alert">
+            <i class="fas fa-check-circle me-2"></i>Đơn hàng của bạn đã được xác nhận và sẽ sớm được chuẩn bị.
+        </div>
+    }
+    else if (Model.Status == OrderStatus.Billing)
+    {
+        <div class="alert alert-info mt-4" role="alert">
+            <i class="fas fa-spinner me-2"></i>Đơn hàng của bạn đang được chuẩn bị. Xin vui lòng chờ trong giây lát!
+        </div>
+    }
+    else if (Model.Status == OrderStatus.Completed)
+    {
+        <div class="alert alert-success mt-4" role="alert">
+            <i class="fas fa-check-circle me-2"></i>Đơn hàng của bạn đã hoàn thành. Cảm ơn bạn đã sử dụng dịch vụ của chúng tôi!
+        </div>
+    }
+    else if (Model.Status == OrderStatus.Cancelled)
+    {
+        <div class="alert alert-danger mt-4" role="alert">
+            <i class="fas fa-times-circle me-2"></i>Đơn hàng của bạn đã bị hủy.
+        </div>
+    }
+</div>
+
+@functions {
+    public string GetOrderStatusText(OrderStatus status)
+    {
+        return status switch
+        {
+            OrderStatus.Pending => "Đang chờ xử lý",
+            OrderStatus.Confirmed => "Đã xác nhận",
+            OrderStatus.Billing => "Đang chuẩn bị",
+            OrderStatus.Completed => "Hoàn thành",
+            OrderStatus.Cancelled => "Đã hủy",
+            _ => "Không xác định"
+        };
+    }
+
+    public string GetOrderStatusBadgeClass(OrderStatus status)
+    {
+        return status switch
+        {
+            OrderStatus.Pending => "bg-warning text-dark",
+            OrderStatus.Confirmed => "bg-info text-white",
+            OrderStatus.Billing => "bg-purple text-white",
+            OrderStatus.Completed => "bg-success text-white",
+            OrderStatus.Cancelled => "bg-danger text-white",
+            _ => "bg-secondary text-white"
+        };
+    }
+} 

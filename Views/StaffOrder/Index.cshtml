@@ -1,0 +1,411 @@
+@model IEnumerable<DishOrder>
+@{
+    ViewData["Title"] = "Quản lý đơn hàng";
+    // Group orders by OrderId and TableNumber
+    var groupedOrders = Model
+        .Where(o => o.OrderId.HasValue)
+        .GroupBy(o => new { o.OrderId, TableNumber = o.Order?.TableNumber ?? "Không có bàn", Status = o.Order?.Status })
+        .ToList();
+    
+    // Get standalone orders (no OrderId)
+    var standaloneOrders = Model.Where(o => !o.OrderId.HasValue).ToList();
+}
+
+<div class="container">
+    <h2 class="mb-4">@ViewData["Title"]</h2>
+
+    @if (TempData["SuccessMessage"] != null)
+    {
+        <div class="alert alert-success alert-dismissible fade show" role="alert">
+            @TempData["SuccessMessage"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+
+    <div class="mb-3">
+        <a asp-action="Create" class="btn btn-primary">
+            <i class="fas fa-plus"></i> Tạo đơn hàng mới
+        </a>
+        <button id="refreshOrdersBtn" class="btn btn-outline-secondary">
+            <i class="fas fa-sync-alt"></i> Làm mới
+        </button>
+    </div>
+
+    <div id="ordersList">
+        @* Grouped Orders *@
+        @foreach (var group in groupedOrders)
+        {
+            <div class="card mb-4">
+                <div class="card-header @(group.Key.Status == OrderStatus.Billing ? "bg-warning text-dark" : "bg-primary text-white")">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0">
+                            <i class="fas fa-utensils"></i> 
+                            Bàn: @group.Key.TableNumber - Đơn hàng #@group.Key.OrderId
+                            @if (group.Key.Status == OrderStatus.Billing)
+                            {
+                                <span class="badge bg-warning text-dark ms-2">
+                                    <i class="fas fa-file-invoice-dollar"></i> Đang tính tiền
+                                </span>
+                            }
+                        </h5>
+                        <div>
+                            <span class="badge bg-light text-dark me-2">
+                                @group.Count() món - Tổng: @group.Sum(o => o.TotalPrice).ToString("N0") đ
+                            </span>
+                            @if (group.Key.Status != OrderStatus.Billing && group.Key.Status != OrderStatus.Completed)
+                            {
+                                <a asp-action="Edit" asp-route-id="@group.Key.OrderId" class="btn btn-sm btn-info me-1">
+                                    <i class="fas fa-edit"></i> Sửa đơn
+                                </a>
+                                <button class="btn btn-sm btn-warning" onclick="updateOrderTableStatus(@group.Key.OrderId, 'Billing')">
+                                    <i class="fas fa-file-invoice-dollar"></i> Tính tiền
+                                </button>
+                            }
+                            @if (group.Key.Status == OrderStatus.Billing)
+                            {
+                                <a asp-action="Edit" asp-route-id="@group.Key.OrderId" class="btn btn-sm btn-info me-1">
+                                    <i class="fas fa-edit"></i> Sửa đơn
+                                </a>
+                                <button class="btn btn-sm btn-success" onclick="updateOrderTableStatus(@group.Key.OrderId, 'Completed')">
+                                    <i class="fas fa-check"></i> Hoàn thành thanh toán
+                                </button>
+                            }
+                            @if (group.Key.Status == OrderStatus.Completed)
+                            {
+                                <a href="@Url.Action("PrintBill", new { id = group.Key.OrderId })" class="btn btn-sm btn-info me-1">
+                                    <i class="fas fa-print"></i> In hóa đơn
+                                </a>
+                                <a href="@Url.Action("Details", "CustomerBill", new { id = group.Key.OrderId })" class="btn btn-sm btn-success">
+                                    <i class="fas fa-receipt"></i> Hóa đơn khách hàng
+                                </a>
+                            }
+                        </div>
+                    </div>
+                </div>
+                <div class="card-body p-0">
+    <div class="table-responsive">
+                        <table class="table table-striped mb-0">
+            <thead>
+                <tr>
+                    <th>Món ăn</th>
+                    <th>Số lượng</th>
+                    <th>Đơn giá</th>
+                    <th>Thành tiền</th>
+                                    <th>Loại đơn</th>
+                    <th>Ghi chú</th>
+                                    <th>Thời gian</th>
+                                    <th>Trạng thái</th>
+                                    <th>Thao tác</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var order in group)
+                                {
+                                    <tr data-order-id="@order.Id">
+                                        <td>@order.Name</td>
+                                        <td>@order.Quantity</td>
+                                        <td>@order.Price.ToString("N0") đ</td>
+                                        <td>@order.TotalPrice.ToString("N0") đ</td>
+                                        <td>@(order.OrderType == OrderType.DineIn ? "Ăn tại quán" : "Mang về")</td>
+                                        <td>@(!string.IsNullOrEmpty(order.Notes) ? order.Notes : "-")</td>
+                                        <td>@order.OrderTime.ToString("HH:mm dd/MM/yyyy")</td>
+                                        <td>
+                                            <span class="badge bg-@(order.Status switch {
+                                                DishOrderStatus.Pending => "warning",
+                                                DishOrderStatus.Preparing => "info",
+                                                DishOrderStatus.Completed => "success",
+                                                DishOrderStatus.Cancelled => "danger",
+                                                _ => "secondary"
+                                            })">
+                                                @order.Status.ToString()
+                                            </span>
+                                        </td>
+                                        <td>
+                                            <div class="btn-group">
+                                                <button type="button" class="btn btn-sm btn-outline-primary dropdown-toggle" 
+                                                        data-bs-toggle="dropdown">
+                                                    Thao tác
+                                                </button>
+                                                <ul class="dropdown-menu">
+                                                    <li>
+                                                        <a class="dropdown-item" href="#" 
+                                                           onclick="updateOrderStatus(@order.Id, 'Preparing')">
+                                                            <i class="fas fa-hourglass-start"></i> Đang chế biến
+                                                        </a>
+                                                    </li>
+                                                    <li>
+                                                        <a class="dropdown-item" href="#" 
+                                                           onclick="updateOrderStatus(@order.Id, 'Completed')">
+                                                            <i class="fas fa-check"></i> Hoàn thành
+                                                        </a>
+                                                    </li>
+                                                    <li>
+                                                        <hr class="dropdown-divider">
+                                                    </li>
+                                                    <li>
+                                                        <a class="dropdown-item text-danger" href="#" 
+                                                           onclick="updateOrderStatus(@order.Id, 'Cancelled')">
+                                                            <i class="fas fa-times"></i> Hủy đơn
+                                                        </a>
+                                                    </li>
+                                                </ul>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        }
+
+        @* Standalone Orders (legacy orders) *@
+        @if (standaloneOrders.Any())
+        {
+            <div class="card mb-4">
+                <div class="card-header bg-secondary text-white">
+                    <h5 class="mb-0">Đơn hàng đơn lẻ</h5>
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-striped mb-0">
+                            <thead>
+                                <tr>
+                                    <th>Món ăn</th>
+                                    <th>Số lượng</th>
+                                    <th>Đơn giá</th>
+                                    <th>Thành tiền</th>
+                    <th>Loại đơn</th>
+                                    <th>Ghi chú</th>
+                    <th>Thời gian</th>
+                    <th>Trạng thái</th>
+                    <th>Thao tác</th>
+                </tr>
+            </thead>
+                            <tbody>
+                                @foreach (var order in standaloneOrders)
+                                {
+                                    <tr data-order-id="@order.Id">
+                                        <td>@order.Name</td>
+                                        <td>@order.Quantity</td>
+                                        <td>@order.Price.ToString("N0") đ</td>
+                                        <td>@order.TotalPrice.ToString("N0") đ</td>
+                                        <td>@(order.OrderType == OrderType.DineIn ? "Ăn tại quán" : "Mang về")</td>
+                                        <td>@(!string.IsNullOrEmpty(order.Notes) ? order.Notes : "-")</td>
+                                        <td>@order.OrderTime.ToString("HH:mm dd/MM/yyyy")</td>
+                                        <td>
+                                            <span class="badge bg-@(order.Status switch {
+                                                DishOrderStatus.Pending => "warning",
+                                                DishOrderStatus.Preparing => "info",
+                                                DishOrderStatus.Completed => "success",
+                                                DishOrderStatus.Cancelled => "danger",
+                                                _ => "secondary"
+                                            })">
+                                                @order.Status.ToString()
+                                            </span>
+                                        </td>
+                                        <td>
+                                            <div class="btn-group">
+                                                <button type="button" class="btn btn-sm btn-outline-primary dropdown-toggle" 
+                                                        data-bs-toggle="dropdown">
+                                                    Thao tác
+                                                </button>
+                                                <ul class="dropdown-menu">
+                                                    <li>
+                                                        <a class="dropdown-item" href="#" 
+                                                           onclick="updateOrderStatus(@order.Id, 'Preparing')">
+                                                            <i class="fas fa-hourglass-start"></i> Đang chế biến
+                                                        </a>
+                                                    </li>
+                                                    <li>
+                                                        <a class="dropdown-item" href="#" 
+                                                           onclick="updateOrderStatus(@order.Id, 'Completed')">
+                                                            <i class="fas fa-check"></i> Hoàn thành
+                                                        </a>
+                                                    </li>
+                                                    <li>
+                                                        <hr class="dropdown-divider">
+                                                    </li>
+                                                    <li>
+                                                        <a class="dropdown-item text-danger" href="#" 
+                                                           onclick="updateOrderStatus(@order.Id, 'Cancelled')">
+                                                            <i class="fas fa-times"></i> Hủy đơn
+                                                        </a>
+                                                    </li>
+                                                </ul>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                }
+            </tbody>
+        </table>
+                    </div>
+                </div>
+            </div>
+        }
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        function updateOrderStatus(orderId, status) {
+            if (!confirm('Bạn có chắc muốn cập nhật trạng thái đơn hàng?')) {
+                return;
+            }
+
+            $.ajax({
+                url: '@Url.Action("UpdateStatus")',
+                type: 'POST',
+                data: { id: orderId, status: status },
+                success: function(result) {
+                    if (result.success) {
+                        if (status === 'Completed') {
+                            // Nếu hoàn thành, hiển thị modal tùy chọn hóa đơn
+                            var printUrl = '@Url.Action("PrintBill", "StaffOrder")' + '/' + orderId;
+                            var customerBillUrl = result.customerBillUrl;
+                            showBillOptionsModal(printUrl, customerBillUrl);
+                        } else {
+                            // Nếu không phải hoàn thành, làm mới danh sách
+                            refreshOrders();
+                        }
+                    } else {
+                        alert(result.message || 'Có lỗi xảy ra khi cập nhật trạng thái.');
+                    }
+                },
+                error: function() {
+                    alert('Có lỗi xảy ra khi gửi yêu cầu.');
+                }
+            });
+        }
+        
+        function updateOrderTableStatus(orderId, status) {
+            var confirmMessage = status === 'Billing' 
+                ? 'Bạn có chắc muốn chuyển đơn hàng này sang trạng thái tính tiền?' 
+                : 'Bạn có chắc muốn hoàn thành thanh toán cho đơn hàng này?';
+                
+            if (!confirm(confirmMessage)) {
+                return;
+            }
+            
+            $.ajax({
+                url: '@Url.Action("UpdateOrderStatus")',
+                type: 'POST',
+                data: { id: orderId, status: status },
+                success: function(result) {
+                    if (result.success) {
+                        // Nếu thanh toán hoàn tất, hiển thị thông báo và nút in hóa đơn
+                        if (result.completed) {
+                            var printUrl = result.printUrl;
+                            var customerBillUrl = result.customerBillUrl;
+                            
+                            // Hiển thị modal xác nhận với các tùy chọn
+                            showBillOptionsModal(printUrl, customerBillUrl);
+                            return;
+                        }
+                        
+                        // Làm mới danh sách đơn hàng
+                        refreshOrders();
+                    } else {
+                        alert('Có lỗi xảy ra khi cập nhật trạng thái.');
+                    }
+                },
+                error: function() {
+                    alert('Có lỗi xảy ra khi gửi yêu cầu.');
+                }
+            });
+        }
+        
+        function refreshOrders() {
+            $.ajax({
+                url: '@Url.Action("GetLatestOrders")',
+                type: 'GET',
+                success: function(result) {
+                    $('#ordersList').html(result);
+                },
+                error: function() {
+                    alert('Có lỗi xảy ra khi tải danh sách đơn hàng.');
+                }
+            });
+        }
+        
+        function showBillOptionsModal(printUrl, customerBillUrl) {
+            // Tạo modal
+            var modalHtml = `
+                <div class="modal fade" id="billOptionsModal" tabindex="-1" aria-labelledby="billOptionsModalLabel" aria-hidden="true">
+                    <div class="modal-dialog modal-dialog-centered">
+                        <div class="modal-content">
+                            <div class="modal-header bg-success text-white">
+                                <h5 class="modal-title" id="billOptionsModalLabel">Thanh toán hoàn tất</h5>
+                                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                            </div>
+                            <div class="modal-body">
+                                <p class="mb-4">Đơn hàng đã được thanh toán thành công. Vui lòng chọn tùy chọn hóa đơn:</p>
+                                <div class="d-grid gap-3">
+                                    <a href="${printUrl}" class="btn btn-primary">
+                                        <i class="fas fa-print me-2"></i> In hóa đơn cho nhà bếp
+                                    </a>
+                                    <a href="${customerBillUrl}" class="btn btn-success">
+                                        <i class="fas fa-receipt me-2"></i> Hiển thị hóa đơn cho khách hàng
+                                    </a>
+                                </div>
+                            </div>
+                            <div class="modal-footer">
+                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Đóng</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            // Thêm modal vào trang
+            $('body').append(modalHtml);
+            
+            // Hiển thị modal
+            var modal = new bootstrap.Modal(document.getElementById('billOptionsModal'));
+            modal.show();
+            
+            // Xử lý sự kiện đóng modal
+            $('#billOptionsModal').on('hidden.bs.modal', function () {
+                // Xóa modal khỏi DOM khi đóng
+                $(this).remove();
+                // Làm mới danh sách đơn hàng
+                refreshOrders();
+            });
+        }
+        
+        function handlePayment(orderId) {
+            if (!confirm("Xác nhận thanh toán đơn hàng này?")) {
+                return;
+            }
+            
+            $.ajax({
+                url: '@Url.Action("UpdateOrderStatus", "StaffOrder")',
+                type: 'POST',
+                data: { id: orderId, status: 'Completed' },
+                success: function(response) {
+                    if (response.success) {
+                        // Sử dụng modal mới thay vì alert
+                        var printUrl = '@Url.Action("PrintBill", "StaffOrder")' + '/' + orderId;
+                        var customerBillUrl = response.customerBillUrl;
+                        showBillOptionsModal(printUrl, customerBillUrl);
+                    } else {
+                        alert(response.message);
+                    }
+                },
+                error: function() {
+                    alert('Đã xảy ra lỗi khi cập nhật trạng thái đơn hàng.');
+                }
+            });
+        }
+        
+        $(document).ready(function() {
+            $('#refreshOrdersBtn').click(function() {
+                refreshOrders();
+            });
+            
+            // Làm mới tự động sau mỗi 60 giây
+            setInterval(refreshOrders, 60000);
+        });
+    </script>
+}

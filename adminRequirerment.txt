@@ -1,0 +1,114 @@
+Yêu cầu:
+Xây dựng một trang quản lý (Admin Dashboard) dành riêng cho Admin sử dụng ASP.NET Core MVC, tích hợp các chức năng quản lý toàn diện gồm:
+
+Quản lý danh mục món ăn
+
+Quản lý người dùng với các vai trò: Admin, Staff, Chef, và User
+
+Báo cáo danh thu
+
+Kiểm soát lưu lượng và thống kê các món ăn (số lượng bán ra, món ăn ưa thích, tồn kho, …)
+
+Các tính năng bổ trợ khác theo yêu cầu
+
+Yêu cầu kỹ thuật và chi tiết:
+
+Cấu trúc và Kiến trúc:
+
+Sử dụng ASP.NET Core MVC với tách biệt rõ ràng các tầng Model, View, Controller.
+
+Áp dụng ASP.NET Core Identity để xác thực và phân quyền truy cập theo role.
+
+Tích hợp các API hoặc thư viện báo cáo nếu cần thiết cho thống kê và biểu đồ.
+
+Models:
+
+Dish (Món ăn):
+
+Thuộc tính: Id, Name (Tên món), Description (Mô tả), Price (Giá tiền), Status (trạng thái món ăn: có sẵn, hết hàng, …), CategoryId (nếu có phân loại theo danh mục).
+
+User:
+
+Thuộc tính cơ bản như Id, Username, Email, Role (Admin, Staff, Chef, User), cùng các thuộc tính liên quan đến hồ sơ.
+
+Order (Đơn hàng):
+
+Các thuộc tính: Id, OrderDate, TotalAmount, danh sách món ăn trong đơn hàng, trạng thái đơn hàng, …
+
+Report (Báo cáo):
+
+Các model hoặc view model tùy chỉnh để chứa dữ liệu thống kê: tổng doanh thu, số lượng đơn hàng, danh sách món bán chạy, …
+
+Các model khác hỗ trợ theo nghiệp vụ và yêu cầu.
+
+Controllers:
+
+AdminController:
+
+Action Index: Hiển thị tổng quan (Dashboard) với các số liệu thống kê và báo cáo nhanh.
+
+Action ManageDishes: Quản lý danh mục món ăn (CRUD: thêm, sửa, xóa món ăn).
+
+Action ManageUsers: Quản lý tài khoản người dùng, cho phép tạo, chỉnh sửa, phân quyền (Admin, Staff, Chef, User).
+
+Action Reports: Hiển thị báo cáo chi tiết về doanh thu, lưu lượng món ăn, và các số liệu liên quan.
+
+Action TrafficControl: Kiểm soát lưu lượng món ăn, thống kê món bán ra theo thời gian, theo danh mục, theo trạng thái, …
+
+Áp dụng [Authorize(Roles = "Admin")] cho các action này để chỉ cho phép Admin truy cập.
+
+Views:
+
+Dashboard View:
+
+Giao diện tổng quan hiển thị các biểu đồ, bảng số liệu thống kê nhanh: tổng doanh thu, số lượng đơn hàng, món ăn bán chạy, …
+
+Sử dụng thư viện biểu đồ (như Chart.js, Google Charts hoặc bất kỳ thư viện nào phù hợp) để hiển thị số liệu trực quan.
+
+Manage Dishes View:
+
+Giao diện CRUD cho danh mục món ăn với bảng danh sách, form thêm/sửa món ăn, tính năng tìm kiếm, lọc và phân trang.
+
+Manage Users View:
+
+Danh sách người dùng cùng các tùy chọn phân quyền.
+
+Form tạo mới, chỉnh sửa và xóa tài khoản.
+
+Tích hợp bộ lọc theo role để dễ dàng quản lý.
+
+Reports View:
+
+Hiển thị các báo cáo chi tiết: bảng số liệu, biểu đồ doanh thu theo ngày/tháng, danh sách món bán chạy, …
+
+Cung cấp tính năng xuất báo cáo dưới dạng file PDF hoặc Excel (nếu cần).
+
+Traffic Control View:
+
+Hiển thị thống kê lưu lượng món ăn, hiển thị các biểu đồ số lượng bán ra theo thời gian, theo khu vực, …
+
+Cho phép admin điều chỉnh hoặc kiểm soát các chỉ số liên quan.
+
+Tính năng bổ trợ:
+
+Authentication & Authorization:
+
+Cấu hình ASP.NET Core Identity để đảm bảo rằng chỉ có Admin mới có quyền truy cập vào trang quản trị.
+
+Các user khác (Staff, Chef, User) không thể truy cập hoặc sẽ bị chuyển hướng về trang thông báo không đủ quyền.
+
+Validation & Error Handling:
+
+Áp dụng các validation cần thiết ở phía server và client cho form nhập liệu.
+
+Xử lý lỗi và thông báo lỗi thân thiện cho người dùng.
+
+Logging & Audit:
+
+Ghi log các hoạt động quản trị để có thể theo dõi và audit trong trường hợp cần thiết (ví dụ: khi có thay đổi dữ liệu, phân quyền, xóa dữ liệu).
+
+Seed Data & Testing:
+
+Tạo dữ liệu mẫu cho danh mục món ăn, tài khoản người dùng (Admin, Staff, Chef, User) để test chức năng.
+
+Kiểm thử các chức năng CRUD và báo cáo trên các môi trường thử nghiệm trước khi triển khai.

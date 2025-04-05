@@ -1,0 +1,170 @@
+@model IEnumerable<QuanVitLonManager.Models.MenuItem>
+
+@{
+    ViewData["Title"] = "Thực Đơn";
+}
+
+<!-- Menu Header -->
+<div class="menu-header">
+    <div class="container">
+        <h1>Thực Đơn Quán Vịt Lộn</h1>
+        <p>Khám phá các món ăn đặc sản từ vịt lộn được chế biến theo công thức truyền thống kết hợp với phương pháp hiện đại.</p>
+    </div>
+</div>
+
+<!-- Special Menu Section -->
+<div class="special-menu-section">
+    <div class="container">
+        <h2>Thực Đơn Đặc Biệt</h2>
+        <p>Những phần món ngon đặc biệt từ những đầu bếp được chế biến theo công thức truyền thống kết hợp với phương cách hiện đại.</p>
+    </div>
+</div>
+
+<div class="container py-5">
+    <!-- Filter Section -->
+    <div class="menu-filter mb-5">
+        <div class="row g-3">
+            <div class="col-md-6">
+                <div class="input-group">
+                    <span class="input-group-text bg-white border-end-0">
+                        <i class="fas fa-search text-muted"></i>
+                    </span>
+                    <input type="text" id="searchInput" class="form-control border-start-0" placeholder="Tìm kiếm món ăn...">
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="input-group">
+                    <span class="input-group-text bg-white border-end-0">
+                        <i class="fas fa-filter text-muted"></i>
+                    </span>
+                    <select id="categoryFilter" class="form-select border-start-0">
+                        <option value="">Tất cả danh mục</option>
+                        @foreach (var category in ViewBag.Categories)
+                        {
+                            <option value="@category.Id">@category.Name</option>
+                        }
+                    </select>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Category Pills -->
+    <div class="category-pills mb-4">
+        <div class="category-pill active" data-category="">Tất cả</div>
+        @foreach (var category in ViewBag.Categories)
+        {
+            <div class="category-pill" data-category="@category.Id">@category.Name</div>
+        }
+    </div>
+
+    <!-- Menu Items -->
+    <div class="row g-4" id="menuItems">
+        @foreach (var item in Model)
+        {
+            <div class="col-md-6 col-lg-4 menu-item" data-category="@item.CategoryId">
+                <div class="card h-100">
+                    @if (!string.IsNullOrEmpty(item.ImageUrl))
+                    {
+                        <div class="card-img-container">
+                            <img src="@item.ImageUrl" class="card-img-top" alt="@item.Name">
+                            <div class="overlay">
+                                <a href="@Url.Action("Details", "Menu", new { id = item.Id })" class="btn btn-light rounded-circle">
+                                    <i class="fas fa-eye"></i>
+                                </a>
+                            </div>
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="card-img-container bg-light d-flex align-items-center justify-content-center">
+                            <i class="fas fa-utensils fa-3x text-secondary"></i>
+                        </div>
+                    }
+                    
+                    @if (item.IsNew)
+                    {
+                        <span class="badge badge-new">Mới</span>
+                    }
+                    else if (item.IsPopular)
+                    {
+                        <span class="badge badge-popular">Phổ biến</span>
+                    }
+                    else if (item.IsOnSale)
+                    {
+                        <span class="badge badge-sale">Giảm giá</span>
+                    }
+                    
+                    <div class="card-body">
+                        <h5 class="card-title">@item.Name</h5>
+                        <p class="card-text">@item.Description</p>
+                        <div class="price">@item.Price.ToString("N0") VNĐ</div>
+                    </div>
+                    <div class="card-footer d-flex justify-content-between">
+                        <a href="@Url.Action("Details", "Menu", new { id = item.Id })" class="btn btn-view">Xem chi tiết</a>
+                        <form asp-controller="Cart" asp-action="AddToCart" method="post" class="d-inline">
+                            <input type="hidden" name="menuItemId" value="@item.Id" />
+                            <input type="hidden" name="quantity" value="1" />
+                            <button type="submit" class="btn btn-add">
+                                <i class="fas fa-shopping-cart"></i>
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        }
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        $(document).ready(function() {
+            // Filter functionality
+            function filterMenuItems() {
+                var searchText = $('#searchInput').val().toLowerCase();
+                var selectedCategory = $('#categoryFilter').val();
+
+                $('.menu-item').each(function() {
+                    var item = $(this);
+                    var itemName = item.find('.card-title').text().toLowerCase();
+                    var itemDescription = item.find('.card-text').text().toLowerCase();
+                    var itemCategory = item.data('category');
+
+                    var matchesSearch = itemName.includes(searchText) || itemDescription.includes(searchText);
+                    var matchesCategory = !selectedCategory || itemCategory == selectedCategory;
+
+                    item.toggle(matchesSearch && matchesCategory);
+                });
+                
+                // Show "no results" message if needed
+                if ($('.menu-item:visible').length === 0) {
+                    if ($('#no-results-message').length === 0) {
+                        $('#menuItems').append('<div id="no-results-message" class="col-12 text-center py-5"><h3>Không tìm thấy món ăn phù hợp</h3><p>Vui lòng thử tìm kiếm khác</p></div>');
+                    }
+                } else {
+                    $('#no-results-message').remove();
+                }
+            }
+
+            $('#searchInput').on('input', filterMenuItems);
+            $('#categoryFilter').on('change', filterMenuItems);
+            
+            // Category pills
+            $('.category-pill').click(function() {
+                $('.category-pill').removeClass('active');
+                $(this).addClass('active');
+                
+                var category = $(this).data('category');
+                $('#categoryFilter').val(category).trigger('change');
+            });
+            
+            // Add to cart animation
+            $('.btn-add').click(function() {
+                $(this).addClass('animate');
+                setTimeout(() => {
+                    $(this).removeClass('animate');
+                }, 500);
+            });
+        });
+    </script>
+}

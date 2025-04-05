@@ -1,0 +1,140 @@
+@model QuanVitLonManager.ViewModels.PaymentViewModel
+
+@{
+    ViewData["Title"] = "Thanh toán";
+}
+
+<div class="container py-4">
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <div class="card border-0 shadow">
+                <div class="card-header bg-primary text-white">
+                    <h3 class="mb-0">Xác nhận thanh toán</h3>
+                </div>
+                <div class="card-body">
+                    <div class="mb-4">
+                        <h5 class="text-primary">Thông tin đơn hàng #@Model.OrderId</h5>
+                        <hr />
+                        <div class="row">
+                            <div class="col-md-6">
+                                <p><strong>Ngày đặt:</strong> @Model.OrderDate.ToString("dd/MM/yyyy HH:mm")</p>
+                            </div>
+                            <div class="col-md-6 text-md-end">
+                                <p><strong>Tổng tiền:</strong> <span class="text-primary fw-bold">@Model.TotalAmount.ToString("N0") VNĐ</span></p>
+                            </div>
+                        </div>
+                        @if (!string.IsNullOrEmpty(Model.Notes))
+                        {
+                            <div class="alert alert-info">
+                                <strong>Ghi chú:</strong> @Model.Notes
+                            </div>
+                        }
+                    </div>
+
+                    <div class="mb-4">
+                        <h5>Chi tiết món ăn</h5>
+                        <div class="table-responsive">
+                            <table class="table">
+                                <thead>
+                                    <tr>
+                                        <th>Món ăn</th>
+                                        <th class="text-center">Số lượng</th>
+                                        <th class="text-end">Đơn giá</th>
+                                        <th class="text-end">Thành tiền</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var item in Model.Items)
+                                    {
+                                        <tr>
+                                            <td>@item.Name</td>
+                                            <td class="text-center">@item.Quantity</td>
+                                            <td class="text-end">@item.Price.ToString("N0") VNĐ</td>
+                                            <td class="text-end">@item.Subtotal.ToString("N0") VNĐ</td>
+                                        </tr>
+                                    }
+                                </tbody>
+                                <tfoot>
+                                    <tr>
+                                        <th colspan="3" class="text-end">Tổng cộng:</th>
+                                        <th class="text-end">@Model.TotalAmount.ToString("N0") VNĐ</th>
+                                    </tr>
+                                </tfoot>
+                            </table>
+                        </div>
+                    </div>
+
+                    <form asp-action="Confirm" asp-route-id="@Model.OrderId" method="post">
+                        <div class="mb-4">
+                            <h5>Chọn phương thức thanh toán</h5>
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <div class="form-check payment-option">
+                                        <input class="form-check-input" type="radio" name="paymentMethod" id="cash" value="@PaymentMethod.Cash" checked>
+                                        <label class="form-check-label" for="cash">
+                                            <i class="bi bi-cash-coin me-2"></i>Tiền mặt
+                                        </label>
+                                    </div>
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <div class="form-check payment-option">
+                                        <input class="form-check-input" type="radio" name="paymentMethod" id="card" value="@PaymentMethod.Card">
+                                        <label class="form-check-label" for="card">
+                                            <i class="bi bi-credit-card me-2"></i>Thẻ tín dụng/ghi nợ
+                                        </label>
+                                    </div>
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <div class="form-check payment-option">
+                                        <input class="form-check-input" type="radio" name="paymentMethod" id="momo" value="@PaymentMethod.MoMo">
+                                        <label class="form-check-label" for="momo">
+                                            <i class="bi bi-wallet2 me-2"></i>Ví MoMo
+                                        </label>
+                                    </div>
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <div class="form-check payment-option">
+                                        <input class="form-check-input" type="radio" name="paymentMethod" id="banking" value="@PaymentMethod.Banking">
+                                        <label class="form-check-label" for="banking">
+                                            <i class="bi bi-bank me-2"></i>Chuyển khoản ngân hàng
+                                        </label>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="d-flex justify-content-between">
+                            <a asp-controller="Order" asp-action="Details" asp-route-id="@Model.OrderId" class="btn btn-outline-secondary">
+                                <i class="bi bi-arrow-left me-2"></i>Quay lại
+                            </a>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="bi bi-check2-circle me-2"></i>Xác nhận thanh toán
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Styles {
+    <style>
+        .payment-option {
+            padding: 15px;
+            border: 1px solid #dee2e6;
+            border-radius: 8px;
+            transition: all 0.3s ease;
+        }
+
+        .payment-option:hover {
+            border-color: #0d6efd;
+            background-color: rgba(13, 110, 253, 0.05);
+        }
+
+        .form-check-input:checked + .form-check-label {
+            font-weight: bold;
+            color: #0d6efd;
+        }
+    </style>
+} 

@@ -1,0 +1,443 @@
+@model OrderStatusReportViewModel
+@{
+    ViewData["Title"] = "Báo cáo trạng thái đơn hàng";
+    Layout = "_AdminLayout";
+}
+
+<div class="container-fluid px-4">
+    <h1 class="mt-4">Báo cáo trạng thái đơn hàng</h1>
+    <ol class="breadcrumb mb-4">
+        <li class="breadcrumb-item"><a href="@Url.Action("Index", "Dashboard", new { area = "Admin" })">Dashboard</a></li>
+        <li class="breadcrumb-item"><a href="@Url.Action("Index", "Reports", new { area = "Admin" })">Báo cáo</a></li>
+        <li class="breadcrumb-item active">Trạng thái đơn hàng</li>
+    </ol>
+    
+    <div class="card mb-4">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <div>
+                <i class="fas fa-calendar-alt me-1"></i>
+                Khoảng thời gian: @Model.StartDate.ToString("dd/MM/yyyy") - @Model.EndDate.ToString("dd/MM/yyyy")
+            </div>
+        </div>
+        <div class="card-body">
+            <form method="get" class="row mb-4" id="dateRangeForm">
+                <div class="col-md-4">
+                    <div class="input-group">
+                        <span class="input-group-text">Từ ngày</span>
+                        <input type="date" name="startDate" class="form-control" 
+                               value="@Model.StartDate.ToString("yyyy-MM-dd")" />
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="input-group">
+                        <span class="input-group-text">Đến ngày</span>
+                        <input type="date" name="endDate" class="form-control" 
+                               value="@Model.EndDate.ToString("yyyy-MM-dd")" />
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="d-flex">
+                        <button type="submit" class="btn btn-primary me-2">
+                            <i class="fas fa-filter me-1"></i> Lọc
+                        </button>
+                        <div class="dropdown">
+                            <button class="btn btn-outline-secondary dropdown-toggle" type="button" id="quickDateRange" data-bs-toggle="dropdown">
+                                Chọn nhanh
+                            </button>
+                            <ul class="dropdown-menu">
+                                <li><a class="dropdown-item quick-range" href="#" data-days="7">7 ngày gần đây</a></li>
+                                <li><a class="dropdown-item quick-range" href="#" data-days="30">30 ngày gần đây</a></li>
+                                <li><a class="dropdown-item quick-range" href="#" data-days="90">3 tháng gần đây</a></li>
+                                <li><a class="dropdown-item quick-range" href="#" data-days="365">1 năm gần đây</a></li>
+                                <li><hr class="dropdown-divider"></li>
+                                <li><a class="dropdown-item quick-range" href="#" data-period="this-month">Tháng này</a></li>
+                                <li><a class="dropdown-item quick-range" href="#" data-period="last-month">Tháng trước</a></li>
+                                <li><a class="dropdown-item quick-range" href="#" data-period="this-year">Năm nay</a></li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+    
+    <div class="row">
+        <div class="col-xl-3 col-md-6">
+            <div class="card bg-primary text-white mb-4">
+                <div class="card-body">
+                    <h5 class="card-title">Tổng đơn hàng</h5>
+                    <h2 class="mb-0">@ViewBag.TotalOrders</h2>
+                </div>
+                <div class="card-footer d-flex align-items-center justify-content-between">
+                    <span class="small text-white">Trong khoảng thời gian đã chọn</span>
+                </div>
+            </div>
+        </div>
+        <div class="col-xl-3 col-md-6">
+            <div class="card bg-success text-white mb-4">
+                <div class="card-body">
+                    <h5 class="card-title">Đơn hoàn thành</h5>
+                    <h2 class="mb-0">@ViewBag.CompletedOrders</h2>
+                </div>
+                <div class="card-footer d-flex align-items-center justify-content-between">
+                    <span class="small text-white">@ViewBag.CompletedOrdersPercent% tổng đơn hàng</span>
+                </div>
+            </div>
+        </div>
+        <div class="col-xl-3 col-md-6">
+            <div class="card bg-warning text-white mb-4">
+                <div class="card-body">
+                    <h5 class="card-title">Đơn đang xử lý</h5>
+                    <h2 class="mb-0">@ViewBag.ProcessingOrders</h2>
+                </div>
+                <div class="card-footer d-flex align-items-center justify-content-between">
+                    <span class="small text-white">@ViewBag.ProcessingOrdersPercent% tổng đơn hàng</span>
+                </div>
+            </div>
+        </div>
+        <div class="col-xl-3 col-md-6">
+            <div class="card bg-danger text-white mb-4">
+                <div class="card-body">
+                    <h5 class="card-title">Đơn bị hủy</h5>
+                    <h2 class="mb-0">@ViewBag.CancelledOrders</h2>
+                </div>
+                <div class="card-footer d-flex align-items-center justify-content-between">
+                    <span class="small text-white">@ViewBag.CancelledOrdersPercent% tổng đơn hàng</span>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="row">
+        <div class="col-xl-6">
+            <div class="card mb-4">
+                <div class="card-header">
+                    <i class="fas fa-chart-pie me-1"></i>
+                    Phân bố trạng thái đơn hàng
+                </div>
+                <div class="card-body">
+                    <canvas id="orderStatusChart" width="100%" height="40"></canvas>
+                </div>
+            </div>
+        </div>
+        <div class="col-xl-6">
+            <div class="card mb-4">
+                <div class="card-header">
+                    <i class="fas fa-chart-line me-1"></i>
+                    Xu hướng trạng thái đơn hàng
+                </div>
+                <div class="card-body">
+                    <canvas id="orderStatusTrendChart" width="100%" height="40"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="card mb-4">
+        <div class="card-header">
+            <i class="fas fa-table me-1"></i>
+            Chi tiết trạng thái đơn hàng
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-bordered table-hover" id="orderStatusTable">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Trạng thái</th>
+                            <th class="text-center">Số lượng đơn</th>
+                            <th class="text-end">Tổng giá trị</th>
+                            <th class="text-end">Giá trị trung bình</th>
+                            <th class="text-center">Tỷ lệ</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var status in Model.OrderStatusData)
+                        {
+                            <tr>
+                                <td>
+                                    <span class="badge bg-@GetStatusColor(status.Status)">@GetStatusName(status.Status)</span>
+                                </td>
+                                <td class="text-center">@status.Count</td>
+                                <td class="text-end">@status.TotalAmount.ToString("N0") đ</td>
+                                <td class="text-end">
+                                    @(status.Count > 0 ? (status.TotalAmount / status.Count).ToString("N0") : 0) đ
+                                </td>
+                                <td class="text-center">
+                                    <div class="progress">
+                                        <div class="progress-bar bg-@GetStatusColor(status.Status)" 
+                                             role="progressbar" 
+                                             style="width: @(ViewBag.TotalOrders > 0 ? (status.Count * 100 / ViewBag.TotalOrders) : 0)%"
+                                             aria-valuenow="@(ViewBag.TotalOrders > 0 ? (status.Count * 100 / ViewBag.TotalOrders) : 0)" 
+                                             aria-valuemin="0" 
+                                             aria-valuemax="100">
+                                            @(ViewBag.TotalOrders > 0 ? (status.Count * 100 / ViewBag.TotalOrders).ToString("0.0") : 0)%
+                                        </div>
+                                    </div>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    
+    <div class="row">
+        <div class="col-md-6">
+            <div class="card mb-4">
+                <div class="card-header">
+                    <i class="fas fa-clock me-1"></i>
+                    Thời gian xử lý đơn hàng
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-sm table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Loại</th>
+                                    <th class="text-end">Thời gian trung bình</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>Từ đặt hàng đến xác nhận</td>
+                                    <td class="text-end">@ViewBag.AvgTimeToConfirm phút</td>
+                                </tr>
+                                <tr>
+                                    <td>Từ xác nhận đến hoàn thành</td>
+                                    <td class="text-end">@ViewBag.AvgTimeToComplete phút</td>
+                                </tr>
+                                <tr>
+                                    <td>Tổng thời gian xử lý</td>
+                                    <td class="text-end">@ViewBag.AvgTotalProcessTime phút</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card mb-4">
+                <div class="card-header">
+                    <i class="fas fa-exclamation-triangle me-1"></i>
+                    Lý do hủy đơn hàng
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-sm table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Lý do</th>
+                                    <th class="text-center">Số lượng</th>
+                                    <th class="text-end">Tỷ lệ</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var reason in ViewBag.CancellationReasons ?? new List<dynamic>())
+                                {
+                                    <tr>
+                                        <td>@reason.Reason</td>
+                                        <td class="text-center">@reason.Count</td>
+                                        <td class="text-end">
+                                            @((reason.Count * 100.0 / ViewBag.CancelledOrders).ToString("0.0"))%
+                                        </td>
+                                    </tr>
+                                }
+                                @if ((ViewBag.CancellationReasons as IEnumerable<dynamic>)?.Any() != true)
+                                {
+                                    <tr>
+                                        <td colspan="3" class="text-center">Không có dữ liệu</td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@3.7.1/dist/chart.min.js"></script>
+    <script src="https://cdn.datatables.net/1.10.25/js/jquery.dataTables.min.js"></script>
+    <script src="https://cdn.datatables.net/1.10.25/js/dataTables.bootstrap5.min.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Biểu đồ phân bố trạng thái đơn hàng
+            var statusCtx = document.getElementById('orderStatusChart');
+            var statusChart = new Chart(statusCtx, {
+                type: 'pie',
+                data: {
+                    labels: [@Html.Raw(string.Join(",", Model.OrderStatusData.Select(s => $"'{GetStatusName(s.Status)}'")))],
+                    datasets: [{
+                        data: [@string.Join(",", Model.OrderStatusData.Select(s => s.Count))],
+                        backgroundColor: [
+                            'rgba(40, 167, 69, 0.7)',   // success - Hoàn thành
+                            'rgba(255, 193, 7, 0.7)',   // warning - Đang xử lý
+                            'rgba(0, 123, 255, 0.7)',   // primary - Đã xác nhận
+                            'rgba(220, 53, 69, 0.7)',   // danger - Đã hủy
+                            'rgba(108, 117, 125, 0.7)'  // secondary - Khác
+                        ]
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: {
+                            position: 'right',
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    var label = context.label || '';
+                                    var value = context.raw || 0;
+                                    var total = context.dataset.data.reduce((a, b) => a + b, 0);
+                                    var percentage = ((value / total) * 100).toFixed(1);
+                                    return label + ': ' + value + ' đơn (' + percentage + '%)';
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+            
+            // Biểu đồ xu hướng trạng thái đơn hàng theo thời gian
+            var trendData = @Html.Raw(ViewBag.OrderStatusTrendJson ?? "null");
+            if (trendData) {
+                var trendCtx = document.getElementById('orderStatusTrendChart');
+                var trendChart = new Chart(trendCtx, {
+                    type: 'line',
+                    data: {
+                        labels: trendData.labels,
+                        datasets: [
+                            {
+                                label: 'Hoàn thành',
+                                data: trendData.completed,
+                                borderColor: 'rgba(40, 167, 69, 1)',
+                                backgroundColor: 'rgba(40, 167, 69, 0.1)',
+                                fill: true,
+                                tension: 0.4
+                            },
+                            {
+                                label: 'Đang xử lý',
+                                data: trendData.processing,
+                                borderColor: 'rgba(255, 193, 7, 1)',
+                                backgroundColor: 'rgba(255, 193, 7, 0.1)',
+                                fill: true,
+                                tension: 0.4
+                            },
+                            {
+                                label: 'Đã hủy',
+                                data: trendData.cancelled,
+                                borderColor: 'rgba(220, 53, 69, 1)',
+                                backgroundColor: 'rgba(220, 53, 69, 0.1)',
+                                fill: true,
+                                tension: 0.4
+                            }
+                        ]
+                    },
+                    options: {
+                        responsive: true,
+                        scales: {
+                            y: {
+                                beginAtZero: true,
+                                title: {
+                                    display: true,
+                                    text: 'Số lượng đơn hàng'
+                                }
+                            },
+                            x: {
+                                title: {
+                                    display: true,
+                                    text: 'Ngày'
+                                }
+                            }
+                        }
+                    }
+                });
+            } else {
+                document.getElementById('orderStatusTrendChart').parentNode.innerHTML = 
+                    '<div class="text-center py-5">Không có đủ dữ liệu để hiển thị xu hướng</div>';
+            }
+            
+            // DataTable cho bảng trạng thái đơn hàng
+            $('#orderStatusTable').DataTable({
+                language: {
+                    url: '//cdn.datatables.net/plug-ins/1.10.25/i18n/Vietnamese.json'
+                },
+                paging: false,
+                searching: false,
+                info: false
+            });
+            
+            // Xử lý nút chọn nhanh khoảng thời gian
+            $('.quick-range').click(function(e) {
+                e.preventDefault();
+                
+                const today = new Date();
+                let startDate = new Date();
+                let endDate = new Date();
+                
+                if ($(this).data('days')) {
+                    const days = $(this).data('days');
+                    startDate.setDate(today.getDate() - days + 1);
+                } else if ($(this).data('period')) {
+                    const period = $(this).data('period');
+                    
+                    if (period === 'this-month') {
+                        startDate = new Date(today.getFullYear(), today.getMonth(), 1);
+                    } else if (period === 'last-month') {
+                        startDate = new Date(today.getFullYear(), today.getMonth() - 1, 1);
+                        endDate = new Date(today.getFullYear(), today.getMonth(), 0);
+                    } else if (period === 'this-year') {
+                        startDate = new Date(today.getFullYear(), 0, 1);
+                    }
+                }
+                
+                document.querySelector('input[name="startDate"]').value = formatDate(startDate);
+                document.querySelector('input[name="endDate"]').value = formatDate(endDate);
+                document.getElementById('dateRangeForm').submit();
+            });
+            
+            // Hàm hỗ trợ format ngày tháng
+            function formatDate(date) {
+                const year = date.getFullYear();
+                const month = String(date.getMonth() + 1).padStart(2, '0');
+                const day = String(date.getDate()).padStart(2, '0');
+                return `${year}-${month}-${day}`;
+            }
+        });
+    </script>
+}
+
+@functions {
+    string GetStatusName(OrderStatus status)
+    {
+        return status switch
+        {
+            OrderStatus.Pending => "Chờ xác nhận",
+            OrderStatus.Confirmed => "Đã xác nhận",
+            OrderStatus.Preparing => "Đang chuẩn bị",
+            OrderStatus.Delivering => "Đang giao hàng",
+            OrderStatus.Completed => "Hoàn thành",
+            OrderStatus.Cancelled => "Đã hủy",
+            _ => status.ToString()
+        };
+    }
+    
+    string GetStatusColor(OrderStatus status)
+    {
+        return status switch
+        {
+            OrderStatus.Pending => "info",
+            OrderStatus.Confirmed => "primary",
+            OrderStatus.Preparing => "warning",
+            OrderStatus.Delivering => "warning",
+            OrderStatus.Completed => "success",
+            OrderStatus.Cancelled => "danger",
+            _ => "secondary"
+        };
+    }
+} 

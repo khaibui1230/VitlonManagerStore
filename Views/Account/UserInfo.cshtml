@@ -1,0 +1,33 @@
+@{
+    ViewData["Title"] = "Thông tin người dùng";
+}
+
+<div class="container py-5">
+    <h1>@ViewData["Title"]</h1>
+    
+    <div class="card mt-4">
+        <div class="card-header">
+            <h5 class="mb-0">Thông tin chi tiết</h5>
+        </div>
+        <div class="card-body">
+            <p><strong>Tên đăng nhập:</strong> @ViewBag.UserName</p>
+            <p><strong>Email:</strong> @ViewBag.Email</p>
+            <p><strong>Vai trò:</strong> 
+                @if (ViewBag.Roles != null && ViewBag.Roles.Count > 0)
+                {
+                    <span>@string.Join(", ", ViewBag.Roles)</span>
+                }
+                else
+                {
+                    <span class="text-muted">Không có vai trò</span>
+                }
+            </p>
+        </div>
+    </div>
+    
+    <div class="mt-4">
+        <form asp-action="Logout" method="post">
+            <button type="submit" class="btn btn-danger">Đăng xuất</button>
+        </form>
+    </div>
+</div>

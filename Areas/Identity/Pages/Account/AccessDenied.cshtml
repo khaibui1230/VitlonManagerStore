@@ -1,0 +1,37 @@
+@page
+@model AccessDeniedModel
+@{
+    ViewData["Title"] = "Từ chối truy cập";
+}
+
+<div class="container mt-5">
+    <div class="row justify-content-center">
+        <div class="col-md-6">
+            <div class="card border-danger">
+                <div class="card-header bg-danger text-white">
+                    <h3 class="card-title mb-0">
+                        <i class="fas fa-exclamation-triangle me-2"></i>Từ chối truy cập
+                    </h3>
+                </div>
+                <div class="card-body">
+                    <div class="text-center mb-4">
+                        <i class="fas fa-lock fa-4x text-danger mb-3"></i>
+                        <h4>Bạn không có quyền truy cập vào trang này</h4>
+                        <p class="text-secondary">
+                            Liên hệ với quản trị viên để được cấp quyền truy cập.
+                        </p>
+                    </div>
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle me-2"></i>
+                        Nếu bạn là quản trị viên và không thể truy cập, hãy đảm bảo tài khoản của bạn đã được cấp quyền "QuanLy".
+                    </div>
+                    <div class="d-grid gap-2 mt-4">
+                        <a asp-area="" asp-controller="Home" asp-action="Index" class="btn btn-outline-secondary">
+                            <i class="fas fa-home me-2"></i>Quay lại trang chủ
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div> 

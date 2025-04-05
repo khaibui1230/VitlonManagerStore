@@ -1,0 +1,15 @@
+@using QuanVitLonManager.Services
+@inject ICartService CartService
+
+<a href="/Cart" class="position-relative d-inline-block text-decoration-none">
+    <i class="fas fa-shopping-cart fa-2x text-dark"></i>
+    @if (CartService.GetCartItemCount() > 0)
+    {
+        <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger">
+            @CartService.GetCartItemCount()
+        </span>
+    }
+    <span class="ms-2 text-dark">
+        @CartService.GetCartTotal().ToString("C0")
+    </span>
+</a>

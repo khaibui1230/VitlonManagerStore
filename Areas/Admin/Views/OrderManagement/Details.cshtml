@@ -1,0 +1,179 @@
+@model QuanVitLonManager.Models.Order
+@using QuanVitLonManager.Models
+@{
+    ViewData["Title"] = "Chi tiết đơn hàng";
+    Layout = "~/Areas/Admin/Views/Shared/_AdminLayout.cshtml";
+}
+
+<div class="container-fluid px-4">
+    <h1 class="mt-4">Chi tiết đơn hàng #@Model.Id</h1>
+    <div class="row">
+        <div class="col-md-6">
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0">Thông tin đơn hàng</h5>
+                </div>
+                <div class="card-body">
+                    <dl class="row">
+                        <dt class="col-sm-4">Mã đơn hàng:</dt>
+                        <dd class="col-sm-8">#@Model.Id</dd>
+
+                        <dt class="col-sm-4">Khách hàng:</dt>
+                        <dd class="col-sm-8">@Model.CustomerName</dd>
+
+                        <dt class="col-sm-4">Ngày đặt:</dt>
+                        <dd class="col-sm-8">@Model.OrderDate.ToString("dd/MM/yyyy HH:mm")</dd>
+
+                        <dt class="col-sm-4">Trạng thái:</dt>
+                        <dd class="col-sm-8">
+                            <span class="badge @(Model.Status switch {
+                                OrderStatus.Pending => "bg-warning",
+                                OrderStatus.Confirmed => "bg-info",
+                                OrderStatus.Preparing => "bg-primary",
+                                OrderStatus.Delivering => "bg-secondary",
+                                OrderStatus.Completed => "bg-success",
+                                OrderStatus.Cancelled => "bg-danger",
+                                _ => "bg-secondary"
+                            })">
+                                @(Model.Status switch {
+                                    OrderStatus.Pending => "Chờ xử lý",
+                                    OrderStatus.Confirmed => "Đã xác nhận",
+                                    OrderStatus.Preparing => "Đang chuẩn bị",
+                                    OrderStatus.Delivering => "Đang giao",
+                                    OrderStatus.Completed => "Hoàn thành",
+                                    OrderStatus.Cancelled => "Đã hủy",
+                                    _ => Model.Status.ToString()
+                                })
+                            </span>
+                        </dd>
+
+                        <dt class="col-sm-4">Loại đơn hàng:</dt>
+                        <dd class="col-sm-8">@Model.OrderType</dd>
+
+                        @if (!string.IsNullOrEmpty(Model.TableNumber))
+                        {
+                            <dt class="col-sm-4">Số bàn:</dt>
+                            <dd class="col-sm-8">@Model.TableNumber</dd>
+                        }
+
+                        <dt class="col-sm-4">Tổng tiền:</dt>
+                        <dd class="col-sm-8">@Model.TotalAmount.ToString("N0") đ</dd>
+                    </dl>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0">Chi tiết món ăn</h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table">
+                            <thead>
+                                <tr>
+                                    <th>Món ăn</th>
+                                    <th>Số lượng</th>
+                                    <th>Đơn giá</th>
+                                    <th>Thành tiền</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var item in Model.OrderDetails)
+                                {
+                                    <tr>
+                                        <td>@item.MenuItem.Name</td>
+                                        <td>@item.Quantity</td>
+                                        <td>@item.UnitPrice.ToString("N0") đ</td>
+                                        <td>@((item.Quantity * item.UnitPrice).ToString("N0")) đ</td>
+                                    </tr>
+                                }
+                            </tbody>
+                            <tfoot>
+                                <tr>
+                                    <td colspan="3" class="text-end"><strong>Tổng cộng:</strong></td>
+                                    <td><strong>@Model.TotalAmount.ToString("N0") đ</strong></td>
+                                </tr>
+                            </tfoot>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="mb-4">
+        <a href="/Admin/OrderManagement" class="btn btn-secondary">
+            <i class="fas fa-arrow-left"></i> Quay lại
+        </a>
+        @if (Model.Status != OrderStatus.Completed && Model.Status != OrderStatus.Cancelled)
+        {
+            <button type="button" class="btn btn-success update-status" 
+                    data-order-id="@Model.Id" 
+                    data-current-status="@Model.Status">
+                <i class="fas fa-sync-alt"></i> Cập nhật trạng thái
+            </button>
+        }
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        $(document).ready(function() {
+            $('.update-status').click(function() {
+                const orderId = $(this).data('order-id');
+                const currentStatus = $(this).data('current-status');
+                
+                const statusOptions = {
+                    'Pending': 'Confirmed',
+                    'Confirmed': 'Preparing',
+                    'Preparing': 'Delivering',
+                    'Delivering': 'Completed',
+                    'Completed': 'Completed',
+                    'Cancelled': 'Cancelled'
+                };
+                
+                const nextStatus = statusOptions[currentStatus] || 'Confirmed';
+                
+                const button = $(this);
+                button.prop('disabled', true).html('<i class="fas fa-spinner fa-spin"></i> Đang cập nhật...');
+                
+                $.ajax({
+                    url: '/Admin/OrderManagement/UpdateStatus',
+                    type: 'POST',
+                    data: {
+                        orderId: orderId,
+                        newStatus: nextStatus
+                    },
+                    success: function(response) {
+                        if (response.success) {
+                            Swal.fire({
+                                icon: 'success',
+                                title: 'Thành công!',
+                                text: 'Đã cập nhật trạng thái đơn hàng.',
+                                showConfirmButton: false,
+                                timer: 1500
+                            }).then(() => {
+                                location.reload();
+                            });
+                        } else {
+                            Swal.fire({
+                                icon: 'error',
+                                title: 'Lỗi!',
+                                text: response.message || 'Không thể cập nhật trạng thái đơn hàng.'
+                            });
+                            button.prop('disabled', false).html('<i class="fas fa-sync-alt"></i> Cập nhật trạng thái');
+                        }
+                    },
+                    error: function() {
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Lỗi!',
+                            text: 'Đã xảy ra lỗi khi cập nhật trạng thái đơn hàng.'
+                        });
+                        button.prop('disabled', false).html('<i class="fas fa-sync-alt"></i> Cập nhật trạng thái');
+                    }
+                });
+            });
+        });
+    </script>
+} 

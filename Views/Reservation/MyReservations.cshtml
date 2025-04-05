@@ -1,0 +1,171 @@
+@model IEnumerable<QuanVitLonManager.Models.Reservation>
+@{
+    ViewData["Title"] = "Đặt bàn của tôi";
+}
+
+<div class="container mt-4">
+    <h1 class="mb-4">
+        <i class="fas fa-calendar-check me-2"></i>Đặt bàn của tôi
+    </h1>
+
+    @if (TempData["SuccessMessage"] != null)
+    {
+        <div class="alert alert-success alert-dismissible fade show" role="alert">
+            <i class="fas fa-check-circle me-2"></i>@TempData["SuccessMessage"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+
+    @if (TempData["ErrorMessage"] != null)
+    {
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+            <i class="fas fa-exclamation-circle me-2"></i>@TempData["ErrorMessage"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+
+    <div class="row mb-4">
+        <div class="col">
+            <a asp-controller="Reservation" asp-action="Index" class="btn btn-primary">
+                <i class="fas fa-plus-circle me-2"></i>Đặt bàn mới
+            </a>
+        </div>
+    </div>
+
+    @if (!Model.Any())
+    {
+        <div class="alert alert-info" role="alert">
+            <i class="fas fa-info-circle me-2"></i>Bạn chưa có lịch đặt bàn nào.
+        </div>
+    }
+    else
+    {
+        <div class="row">
+            @foreach (var reservation in Model)
+            {
+                <div class="col-md-6 mb-4">
+                    <div class="card h-100 reservation-card @GetReservationStatusClass(reservation.Status)">
+                        <div class="card-header d-flex justify-content-between align-items-center">
+                            <h5 class="mb-0">
+                                <i class="fas fa-calendar-alt me-2"></i>Đặt bàn #@reservation.Id
+                            </h5>
+                            <span class="badge @GetReservationStatusBadgeClass(reservation.Status)">
+                                @GetReservationStatusText(reservation.Status)
+                            </span>
+                        </div>
+                        <div class="card-body">
+                            <div class="mb-3">
+                                <p>
+                                    <strong><i class="fas fa-clock me-2"></i>Thời gian:</strong> 
+                                    @reservation.ReservationTime.ToString("dd/MM/yyyy HH:mm")
+                                </p>
+                                <p>
+                                    <strong><i class="fas fa-table me-2"></i>Bàn số:</strong> 
+                                    @(reservation.Table?.TableNumber ?? "Không xác định")
+                                </p>
+                                <p>
+                                    <strong><i class="fas fa-users me-2"></i>Số khách:</strong> 
+                                    @reservation.NumberOfGuests người
+                                </p>
+                                @if (!string.IsNullOrEmpty(reservation.Notes))
+                                {
+                                    <p>
+                                        <strong><i class="fas fa-sticky-note me-2"></i>Ghi chú:</strong> 
+                                        @reservation.Notes
+                                    </p>
+                                }
+                                <p>
+                                    <small class="text-muted">
+                                        <i class="fas fa-calendar me-1"></i>Đã đặt vào: @reservation.CreatedAt.ToString("dd/MM/yyyy HH:mm")
+                                    </small>
+                                </p>
+                            </div>
+                        </div>
+                        <div class="card-footer bg-transparent">
+                            @if (reservation.Status == ReservationStatus.Pending || reservation.Status == ReservationStatus.Confirmed)
+                            {
+                                <form asp-action="Cancel" asp-route-id="@reservation.Id" method="post" onsubmit="return confirm('Bạn có chắc chắn muốn hủy đặt bàn này?');">
+                                    @Html.AntiForgeryToken()
+                                    <button type="submit" class="btn btn-danger">
+                                        <i class="fas fa-times-circle me-2"></i>Hủy đặt bàn
+                                    </button>
+                                </form>
+                            }
+                            else
+                            {
+                                <a asp-controller="Reservation" asp-action="Index" class="btn btn-primary">
+                                    <i class="fas fa-calendar-plus me-2"></i>Đặt bàn mới
+                                </a>
+                            }
+                        </div>
+                    </div>
+                </div>
+            }
+        </div>
+    }
+</div>
+
+<style>
+    .reservation-card {
+        transition: transform 0.2s, box-shadow 0.2s;
+    }
+    
+    .reservation-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+    }
+    
+    .reservation-card.pending-reservation {
+        border-left: 5px solid #ffc107;
+    }
+    
+    .reservation-card.confirmed-reservation {
+        border-left: 5px solid #28a745;
+    }
+    
+    .reservation-card.completed-reservation {
+        border-left: 5px solid #17a2b8;
+    }
+    
+    .reservation-card.cancelled-reservation {
+        border-left: 5px solid #dc3545;
+    }
+</style>
+
+@functions {
+    public string GetReservationStatusText(ReservationStatus status)
+    {
+        return status switch
+        {
+            ReservationStatus.Pending => "Đang chờ xác nhận",
+            ReservationStatus.Confirmed => "Đã xác nhận",
+            ReservationStatus.Completed => "Đã hoàn thành",
+            ReservationStatus.Cancelled => "Đã hủy",
+            _ => "Không xác định"
+        };
+    }
+
+    public string GetReservationStatusBadgeClass(ReservationStatus status)
+    {
+        return status switch
+        {
+            ReservationStatus.Pending => "bg-warning text-dark",
+            ReservationStatus.Confirmed => "bg-success text-white",
+            ReservationStatus.Completed => "bg-info text-white",
+            ReservationStatus.Cancelled => "bg-danger text-white",
+            _ => "bg-secondary text-white"
+        };
+    }
+
+    public string GetReservationStatusClass(ReservationStatus status)
+    {
+        return status switch
+        {
+            ReservationStatus.Pending => "pending-reservation",
+            ReservationStatus.Confirmed => "confirmed-reservation",
+            ReservationStatus.Completed => "completed-reservation",
+            ReservationStatus.Cancelled => "cancelled-reservation",
+            _ => ""
+        };
+    }
+} 

@@ -1,0 +1,209 @@
+@model IEnumerable<DishOrder>
+@{
+    // Group orders by OrderId and TableNumber
+    var groupedOrders = Model
+        .Where(o => o.OrderId.HasValue)
+        .GroupBy(o => new { o.OrderId, TableNumber = o.Order?.TableNumber ?? "Không có bàn", Status = o.Order?.Status })
+        .ToList();
+    
+    // Get standalone orders (no OrderId)
+    var standaloneOrders = Model.Where(o => !o.OrderId.HasValue).ToList();
+}
+
+@* Grouped Orders *@
+@foreach (var group in groupedOrders)
+{
+    <div class="card mb-4">
+        <div class="card-header @(group.Key.Status == OrderStatus.Billing ? "bg-warning text-dark" : "bg-primary text-white")">
+            <div class="d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">
+                    <i class="fas fa-utensils"></i> 
+                    Bàn: @group.Key.TableNumber - Đơn hàng #@group.Key.OrderId
+                    @if (group.Key.Status == OrderStatus.Billing)
+                    {
+                        <span class="badge bg-warning text-dark ms-2">
+                            <i class="fas fa-file-invoice-dollar"></i> Đang tính tiền
+                        </span>
+                    }
+                </h5>
+                <div>
+                    <span class="badge bg-light text-dark me-2">
+                        @group.Count() món - Tổng: @group.Sum(o => o.TotalPrice).ToString("N0") đ
+                    </span>
+                    @if (group.Key.Status != OrderStatus.Billing && group.Key.Status != OrderStatus.Completed)
+                    {
+                        <button class="btn btn-sm btn-warning" onclick="updateOrderTableStatus(@group.Key.OrderId, 'Billing')">
+                            <i class="fas fa-file-invoice-dollar"></i> Tính tiền
+                        </button>
+                    }
+                    @if (group.Key.Status == OrderStatus.Billing)
+                    {
+                        <button class="btn btn-sm btn-success" onclick="updateOrderTableStatus(@group.Key.OrderId, 'Completed')">
+                            <i class="fas fa-check"></i> Hoàn thành thanh toán
+                        </button>
+                    }
+                </div>
+            </div>
+        </div>
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-striped mb-0">
+                    <thead>
+                        <tr>
+                            <th>Món ăn</th>
+                            <th>Số lượng</th>
+                            <th>Đơn giá</th>
+                            <th>Thành tiền</th>
+                            <th>Loại đơn</th>
+                            <th>Ghi chú</th>
+                            <th>Thời gian</th>
+                            <th>Trạng thái</th>
+                            <th>Thao tác</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var order in group)
+                        {
+                            <tr data-order-id="@order.Id">
+                                <td>@order.Name</td>
+                                <td>@order.Quantity</td>
+                                <td>@order.Price.ToString("N0") đ</td>
+                                <td>@order.TotalPrice.ToString("N0") đ</td>
+                                <td>@(order.OrderType == OrderType.DineIn ? "Ăn tại quán" : "Mang về")</td>
+                                <td>@(!string.IsNullOrEmpty(order.Notes) ? order.Notes : "-")</td>
+                                <td>@order.OrderTime.ToString("HH:mm dd/MM/yyyy")</td>
+                                <td>
+                                    <span class="badge bg-@(order.Status switch {
+                                        DishOrderStatus.Pending => "warning",
+                                        DishOrderStatus.Preparing => "info",
+                                        DishOrderStatus.Completed => "success",
+                                        DishOrderStatus.Cancelled => "danger",
+                                        _ => "secondary"
+                                    })">
+                                        @order.Status.ToString()
+                                    </span>
+                                </td>
+                                <td>
+                                    <div class="btn-group">
+                                        <button type="button" class="btn btn-sm btn-outline-primary dropdown-toggle" 
+                                                data-bs-toggle="dropdown">
+                                            Thao tác
+                                        </button>
+                                        <ul class="dropdown-menu">
+                                            <li>
+                                                <a class="dropdown-item" href="#" 
+                                                   onclick="updateOrderStatus(@order.Id, 'Preparing')">
+                                                    <i class="fas fa-hourglass-start"></i> Đang chế biến
+                                                </a>
+                                            </li>
+                                            <li>
+                                                <a class="dropdown-item" href="#" 
+                                                   onclick="updateOrderStatus(@order.Id, 'Completed')">
+                                                    <i class="fas fa-check"></i> Hoàn thành
+                                                </a>
+                                            </li>
+                                            <li>
+                                                <hr class="dropdown-divider">
+                                            </li>
+                                            <li>
+                                                <a class="dropdown-item text-danger" href="#" 
+                                                   onclick="updateOrderStatus(@order.Id, 'Cancelled')">
+                                                    <i class="fas fa-times"></i> Hủy đơn
+                                                </a>
+                                            </li>
+                                        </ul>
+                                    </div>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+}
+
+@* Standalone Orders (legacy orders) *@
+@if (standaloneOrders.Any())
+{
+    <div class="card mb-4">
+        <div class="card-header bg-secondary text-white">
+            <h5 class="mb-0">Đơn hàng đơn lẻ</h5>
+        </div>
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-striped mb-0">
+                    <thead>
+                        <tr>
+                            <th>Món ăn</th>
+                            <th>Số lượng</th>
+                            <th>Đơn giá</th>
+                            <th>Thành tiền</th>
+                            <th>Loại đơn</th>
+                            <th>Ghi chú</th>
+                            <th>Thời gian</th>
+                            <th>Trạng thái</th>
+                            <th>Thao tác</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var order in standaloneOrders)
+{
+    <tr data-order-id="@order.Id">
+        <td>@order.Name</td>
+        <td>@order.Quantity</td>
+        <td>@order.Price.ToString("N0") đ</td>
+        <td>@order.TotalPrice.ToString("N0") đ</td>
+        <td>@(order.OrderType == OrderType.DineIn ? "Ăn tại quán" : "Mang về")</td>
+                                <td>@(!string.IsNullOrEmpty(order.Notes) ? order.Notes : "-")</td>
+        <td>@order.OrderTime.ToString("HH:mm dd/MM/yyyy")</td>
+        <td>
+            <span class="badge bg-@(order.Status switch {
+                DishOrderStatus.Pending => "warning",
+                DishOrderStatus.Preparing => "info",
+                DishOrderStatus.Completed => "success",
+                DishOrderStatus.Cancelled => "danger",
+                _ => "secondary"
+            })">
+                @order.Status.ToString()
+            </span>
+        </td>
+        <td>
+            <div class="btn-group">
+                <button type="button" class="btn btn-sm btn-outline-primary dropdown-toggle" 
+                        data-bs-toggle="dropdown">
+                    Thao tác
+                </button>
+                <ul class="dropdown-menu">
+                    <li>
+                        <a class="dropdown-item" href="#" 
+                           onclick="updateOrderStatus(@order.Id, 'Preparing')">
+                            <i class="fas fa-hourglass-start"></i> Đang chế biến
+                        </a>
+                    </li>
+                    <li>
+                        <a class="dropdown-item" href="#" 
+                           onclick="updateOrderStatus(@order.Id, 'Completed')">
+                            <i class="fas fa-check"></i> Hoàn thành
+                        </a>
+                    </li>
+                    <li>
+                        <hr class="dropdown-divider">
+                    </li>
+                    <li>
+                        <a class="dropdown-item text-danger" href="#" 
+                           onclick="updateOrderStatus(@order.Id, 'Cancelled')">
+                            <i class="fas fa-times"></i> Hủy đơn
+                        </a>
+                    </li>
+                </ul>
+            </div>
+        </td>
+    </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+}

@@ -1,0 +1,210 @@
+@model IEnumerable<QuanVitLonManager.Models.DishOrder>
+@using QuanVitLonManager.Models
+@{
+    ViewData["Title"] = "Bếp - Quản lý món ăn";
+    Layout = "_Layout";
+    
+    var groupedDishes = ViewBag.GroupedDishes as List<dynamic>;
+}
+
+<div class="container-fluid mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1 class="display-5 mb-0">@ViewData["Title"]</h1>
+        <div class="d-flex">
+            <a asp-action="Orders" class="btn btn-outline-secondary me-2">
+                <i class="fas fa-list-alt"></i> Xem đơn hàng
+            </a>
+            <div class="dropdown">
+                <button class="btn btn-outline-primary dropdown-toggle" type="button" id="filterDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+                    <i class="fas fa-filter"></i> Lọc
+                </button>
+                <ul class="dropdown-menu" aria-labelledby="filterDropdown">
+                    <li><a class="dropdown-item @(ViewBag.CurrentFilter == null ? "active" : "")" asp-action="Index">Mặc định (Chờ & Đang làm)</a></li>
+                    <li><a class="dropdown-item @(ViewBag.CurrentFilter == "Pending" ? "active" : "")" asp-action="Index" asp-route-statusFilter="Pending">Đang chờ</a></li>
+                    <li><a class="dropdown-item @(ViewBag.CurrentFilter == "Preparing" ? "active" : "")" asp-action="Index" asp-route-statusFilter="Preparing">Đang chuẩn bị</a></li>
+                    <li><a class="dropdown-item @(ViewBag.CurrentFilter == "Completed" ? "active" : "")" asp-action="Index" asp-route-statusFilter="Completed">Hoàn thành</a></li>
+                    <li><a class="dropdown-item @(ViewBag.CurrentFilter == "Cancelled" ? "active" : "")" asp-action="Index" asp-route-statusFilter="Cancelled">Đã hủy</a></li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    @if (!Model.Any())
+    {
+        <div class="alert alert-info">
+            <h4 class="alert-heading"><i class="fas fa-info-circle"></i> Không có món ăn nào!</h4>
+            <p class="mb-0">Hiện không có món ăn nào cần chuẩn bị theo bộ lọc hiện tại.</p>
+        </div>
+    }
+    else 
+    {
+        <div class="row">
+            <div class="col-md-8">
+                <div class="card border-0 shadow-sm">
+                    <div class="card-header bg-primary text-white">
+                        <h5 class="card-title mb-0">
+                            <i class="fas fa-utensils me-2"></i>Danh sách món ăn cần làm
+                        </h5>
+                    </div>
+                    <div class="card-body p-0">
+                        <div class="table-responsive">
+                            <table class="table table-hover mb-0">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th scope="col" style="width: 5%">#</th>
+                                        <th scope="col" style="width: 30%">Tên món</th>
+                                        <th scope="col" style="width: 25%">Ghi chú</th>
+                                        <th scope="col" style="width: 10%">Số lượng</th>
+                                        <th scope="col" style="width: 15%">Trạng thái</th>
+                                        <th scope="col" style="width: 15%">Thao tác</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @if (groupedDishes != null)
+                                    {
+                                        @for (int i = 0; i < groupedDishes.Count; i++)
+                                        {
+                                            var dish = groupedDishes[i];
+                                            var firstItem = dish.FirstItem;
+                                            var statusClass = GetStatusClass(firstItem.Status);
+                                            
+                                            <tr>
+                                                <td>@(i + 1)</td>
+                                                <td>
+                                                    <span class="fw-bold">@dish.DishName</span>
+                                                    @if (firstItem.OrderId != null)
+                                                    {
+                                                        <span class="badge bg-info ms-2">#@firstItem.OrderId</span>
+                                                    }
+                                                </td>
+                                                <td>@(string.IsNullOrEmpty(dish.Notes) ? "-" : dish.Notes)</td>
+                                                <td>
+                                                    <span class="badge bg-secondary">@dish.TotalQuantity</span>
+                                                </td>
+                                                <td>
+                                                    <span class="badge @statusClass">
+                                                        @GetStatusName(firstItem.Status)
+                                                    </span>
+                                                </td>
+                                                <td>
+                                                    <form asp-action="UpdateGroupStatus" method="post">
+                                                        @Html.AntiForgeryToken()
+                                                        <input type="hidden" name="dishName" value="@dish.DishName" />
+                                                        <input type="hidden" name="notes" value="@dish.Notes" />
+                                                        
+                                                        @if (firstItem.Status == DishOrderStatus.Pending)
+                                                        {
+                                                            <button type="submit" name="status" value="Preparing" class="btn btn-warning btn-sm">
+                                                                <i class="fas fa-fire"></i> Bắt đầu làm
+                                                            </button>
+                                                        }
+                                                        else if (firstItem.Status == DishOrderStatus.Preparing)
+                                                        {
+                                                            <button type="submit" name="status" value="Completed" class="btn btn-success btn-sm">
+                                                                <i class="fas fa-check"></i> Hoàn thành
+                                                            </button>
+                                                        }
+                                                        else 
+                                                        {
+                                                            <a asp-action="Details" asp-route-id="@firstItem.Id" class="btn btn-outline-primary btn-sm">
+                                                                <i class="fas fa-info-circle"></i> Chi tiết
+                                                            </a>
+                                                        }
+                                                    </form>
+                                                </td>
+                                            </tr>
+                                        }
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-md-4">
+                <div class="card border-0 shadow-sm">
+                    <div class="card-header bg-info text-white">
+                        <h5 class="card-title mb-0">
+                            <i class="fas fa-chart-pie me-2"></i>Thống kê
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row g-3">
+                            <div class="col-6">
+                                <div class="card bg-light">
+                                    <div class="card-body text-center">
+                                        <h6 class="card-title text-primary">Đang chờ</h6>
+                                        <h2 class="mb-0">@Model.Count(m => m.Status == DishOrderStatus.Pending)</h2>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-6">
+                                <div class="card bg-light">
+                                    <div class="card-body text-center">
+                                        <h6 class="card-title text-warning">Đang làm</h6>
+                                        <h2 class="mb-0">@Model.Count(m => m.Status == DishOrderStatus.Preparing)</h2>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-6">
+                                <div class="card bg-light">
+                                    <div class="card-body text-center">
+                                        <h6 class="card-title text-success">Hoàn thành</h6>
+                                        <h2 class="mb-0">@Model.Count(m => m.Status == DishOrderStatus.Completed)</h2>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-6">
+                                <div class="card bg-light">
+                                    <div class="card-body text-center">
+                                        <h6 class="card-title text-danger">Đã hủy</h6>
+                                        <h2 class="mb-0">@Model.Count(m => m.Status == DishOrderStatus.Cancelled)</h2>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="card border-0 shadow-sm mt-4">
+                    <div class="card-header bg-success text-white">
+                        <h5 class="card-title mb-0">
+                            <i class="fas fa-bell me-2"></i>Thông báo
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <p>Hiện có <strong>@Model.Count(m => m.Status == DishOrderStatus.Pending)</strong> món ăn đang chờ xử lý.</p>
+                        <p class="mb-0">Hãy cập nhật trạng thái khi bắt đầu làm và khi hoàn thành các món.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+</div>
+
+@functions {
+    string GetStatusClass(DishOrderStatus status)
+    {
+        return status switch
+        {
+            DishOrderStatus.Pending => "bg-secondary",
+            DishOrderStatus.Preparing => "bg-warning",
+            DishOrderStatus.Completed => "bg-success",
+            DishOrderStatus.Cancelled => "bg-danger",
+            _ => "bg-secondary"
+        };
+    }
+    
+    string GetStatusName(DishOrderStatus status)
+    {
+        return status switch
+        {
+            DishOrderStatus.Pending => "Đang chờ",
+            DishOrderStatus.Preparing => "Đang làm",
+            DishOrderStatus.Completed => "Hoàn thành",
+            DishOrderStatus.Cancelled => "Đã hủy",
+            _ => status.ToString()
+        };
+    }
+} 

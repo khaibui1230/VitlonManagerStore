@@ -1,0 +1,148 @@
+@model QuanVitLonManager.ViewModels.OrderManagementViewModel
+@using QuanVitLonManager.Models
+@{
+    ViewData["Title"] = "Quản lý đơn hàng";
+    Layout = "~/Areas/Admin/Views/Shared/_AdminLayout.cshtml";
+}
+
+<div class="container-fluid px-4">
+    <h1 class="mt-4">Quản lý đơn hàng</h1>
+    <div class="card mb-4">
+        <div class="card-header">
+            <div class="row">
+                <div class="col-md-6">
+                    <form method="get" class="d-flex">
+                        <input type="text" name="searchTerm" class="form-control me-2" placeholder="Tìm kiếm theo ID hoặc tên khách hàng" value="@Model.SearchTerm">
+                        <select name="status" class="form-select me-2" asp-items="@Model.StatusList"></select>
+                        <button type="submit" class="btn btn-primary">Tìm kiếm</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-bordered table-hover">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Khách hàng</th>
+                            <th>Ngày đặt</th>
+                            <th>Tổng tiền</th>
+                            <th>Trạng thái</th>
+                            <th>Thao tác</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var order in Model.Orders)
+                        {
+                            <tr>
+                                <td>@order.Id</td>
+                                <td>@order.CustomerName</td>
+                                <td>@order.OrderDate.ToString("dd/MM/yyyy HH:mm")</td>
+                                <td>@order.TotalAmount.ToString("N0") đ</td>
+                                <td>
+                                    <span class="badge @(order.Status switch {
+                                        OrderStatus.Pending => "bg-warning",
+                                        OrderStatus.Confirmed => "bg-info",
+                                        OrderStatus.Preparing => "bg-primary",
+                                        OrderStatus.Delivering => "bg-secondary",
+                                        OrderStatus.Completed => "bg-success",
+                                        OrderStatus.Cancelled => "bg-danger",
+                                        _ => "bg-secondary"
+                                    })">
+                                        @(order.Status switch {
+                                            OrderStatus.Pending => "Chờ xử lý",
+                                            OrderStatus.Confirmed => "Đã xác nhận",
+                                            OrderStatus.Preparing => "Đang chuẩn bị",
+                                            OrderStatus.Delivering => "Đang giao",
+                                            OrderStatus.Completed => "Hoàn thành",
+                                            OrderStatus.Cancelled => "Đã hủy",
+                                            _ => order.Status.ToString()
+                                        })
+                                    </span>
+                                </td>
+                                <td>
+                                    <div class="btn-group">
+                                        <a href="/Admin/OrderManagement/Details/@order.Id" class="btn btn-sm btn-info">
+                                            <i class="fas fa-info-circle"></i> Chi tiết
+                                        </a>
+                                        @if (order.Status != OrderStatus.Completed && order.Status != OrderStatus.Cancelled)
+                                        {
+                                            <button type="button" class="btn btn-sm btn-success update-status" 
+                                                    data-order-id="@order.Id" 
+                                                    data-current-status="@order.Status">
+                                                <i class="fas fa-sync-alt"></i> Cập nhật
+                                            </button>
+                                        }
+                                    </div>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        $(document).ready(function() {
+            $('.update-status').click(function() {
+                const orderId = $(this).data('order-id');
+                const currentStatus = $(this).data('current-status');
+                
+                const statusOptions = {
+                    'Pending': 'Confirmed',
+                    'Confirmed': 'Preparing',
+                    'Preparing': 'Delivering',
+                    'Delivering': 'Completed',
+                    'Completed': 'Completed',
+                    'Cancelled': 'Cancelled'
+                };
+                
+                const nextStatus = statusOptions[currentStatus] || 'Confirmed';
+                
+                const button = $(this);
+                button.prop('disabled', true).html('<i class="fas fa-spinner fa-spin"></i> Đang cập nhật...');
+                
+                $.ajax({
+                    url: '/Admin/OrderManagement/UpdateStatus',
+                    type: 'POST',
+                    data: {
+                        orderId: orderId,
+                        newStatus: nextStatus
+                    },
+                    success: function(response) {
+                        if (response.success) {
+                            Swal.fire({
+                                icon: 'success',
+                                title: 'Thành công!',
+                                text: 'Đã cập nhật trạng thái đơn hàng.',
+                                showConfirmButton: false,
+                                timer: 1500
+                            }).then(() => {
+                                location.reload();
+                            });
+                        } else {
+                            Swal.fire({
+                                icon: 'error',
+                                title: 'Lỗi!',
+                                text: response.message || 'Không thể cập nhật trạng thái đơn hàng.'
+                            });
+                            button.prop('disabled', false).html('<i class="fas fa-sync-alt"></i> Cập nhật');
+                        }
+                    },
+                    error: function() {
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Lỗi!',
+                            text: 'Đã xảy ra lỗi khi cập nhật trạng thái đơn hàng.'
+                        });
+                        button.prop('disabled', false).html('<i class="fas fa-sync-alt"></i> Cập nhật');
+                    }
+                });
+            });
+        });
+    </script>
+} 

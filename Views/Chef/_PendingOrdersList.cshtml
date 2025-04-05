@@ -1,0 +1,66 @@
+@model IEnumerable<DishOrder>
+
+@if (!Model.Any())
+{
+    <div class="alert alert-success">
+        <i class="fas fa-check-circle"></i> Không có món ăn nào cần chế biến.
+    </div>
+}
+else
+{
+    <div class="table-responsive">
+        <table class="table table-striped table-hover">
+            <thead class="table-dark">
+                <tr>
+                    <th>Món ăn</th>
+                    <th>Số lượng</th>
+                    <th>Bàn</th>
+                    <th>Thời gian</th>
+                    <th>Ghi chú</th>
+                    <th>Trạng thái</th>
+                    <th>Thao tác</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var item in Model)
+                {
+                    <tr>
+                        <td>@item.Name</td>
+                        <td>@item.Quantity</td>
+                        <td>@(item.Order?.TableNumber ?? "Mang về")</td>
+                        <td>@item.OrderTime.ToString("HH:mm:ss")</td>
+                        <td>@item.Notes</td>
+                        <td>
+                            @if (item.Status == DishOrderStatus.Pending)
+                            {
+                                <span class="badge bg-warning">Đang chờ</span>
+                            }
+                            else if (item.Status == DishOrderStatus.Preparing)
+                            {
+                                <span class="badge bg-primary">Đang chế biến</span>
+                            }
+                        </td>
+                        <td>
+                            @if (item.Status == DishOrderStatus.Pending)
+                            {
+                                <button class="btn btn-sm btn-primary update-status" 
+                                        data-id="@item.Id" 
+                                        data-status="Preparing">
+                                    <i class="fas fa-utensils"></i> Bắt đầu chế biến
+                                </button>
+                            }
+                            else if (item.Status == DishOrderStatus.Preparing)
+                            {
+                                <button class="btn btn-sm btn-success update-status" 
+                                        data-id="@item.Id" 
+                                        data-status="Completed">
+                                    <i class="fas fa-check"></i> Hoàn thành
+                                </button>
+                            }
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+}

@@ -1,0 +1,82 @@
+@model QuanVitLonManager.Models.Reservation
+
+@{
+    ViewData["Title"] = "Edit Reservation";
+}
+
+<div class="container">
+    <h1 class="mb-4">Edit Reservation</h1>
+
+    <div class="row">
+        <div class="col-md-8">
+            <form asp-action="Edit">
+                <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+                <input type="hidden" asp-for="Id" />
+                <input type="hidden" asp-for="UserId" />
+
+                <div class="mb-3">
+                    <label asp-for="TableId" class="form-label">Select Table</label>
+                    <select asp-for="TableId" class="form-select" asp-items="@(new SelectList(ViewBag.Tables, "Id", "TableNumber"))">
+                        <option value="">-- Select a table --</option>
+                    </select>
+                    <span asp-validation-for="TableId" class="text-danger"></span>
+                </div>
+
+                <div class="mb-3">
+                    <label asp-for="ReservationTime" class="form-label">Reservation Date & Time</label>
+                    <input asp-for="ReservationTime" class="form-control" type="datetime-local" min="@DateTime.Now.ToString("yyyy-MM-ddTHH:mm")" />
+                    <span asp-validation-for="ReservationTime" class="text-danger"></span>
+                </div>
+
+                <div class="mb-3">
+                    <label asp-for="NumberOfGuests" class="form-label">Number of Guests</label>
+                    <input asp-for="NumberOfGuests" class="form-control" type="number" min="1" max="20" />
+                    <span asp-validation-for="NumberOfGuests" class="text-danger"></span>
+                </div>
+
+                <div class="mb-3">
+                    <label asp-for="Notes" class="form-label">Special Requests</label>
+                    <textarea asp-for="Notes" class="form-control" rows="3"></textarea>
+                    <span asp-validation-for="Notes" class="text-danger"></span>
+                </div>
+
+                <div class="mb-3">
+                    <label asp-for="Status" class="form-label">Status</label>
+                    <select asp-for="Status" class="form-select" asp-items="Html.GetEnumSelectList<ReservationStatus>()"></select>
+                    <span asp-validation-for="Status" class="text-danger"></span>
+                </div>
+
+                <div class="mb-3">
+                    <button type="submit" class="btn btn-primary">Save Changes</button>
+                    <a asp-action="Index" class="btn btn-secondary">Back to List</a>
+                </div>
+            </form>
+        </div>
+
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">Reservation Guidelines</h5>
+                    <ul class="list-unstyled">
+                        <li class="mb-2">
+                            <i class="bi bi-clock"></i> Reservations can be made up to 30 days in advance
+                        </li>
+                        <li class="mb-2">
+                            <i class="bi bi-people"></i> Maximum 20 guests per table
+                        </li>
+                        <li class="mb-2">
+                            <i class="bi bi-calendar"></i> Please arrive within 15 minutes of your reservation time
+                        </li>
+                        <li class="mb-2">
+                            <i class="bi bi-x-circle"></i> Cancellations must be made at least 2 hours in advance
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
+} 

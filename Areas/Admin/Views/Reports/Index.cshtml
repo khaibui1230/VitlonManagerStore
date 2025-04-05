@@ -1,0 +1,253 @@
+@{
+    ViewData["Title"] = "Hệ thống báo cáo";
+    Layout = "_AdminLayout";
+}
+
+<div class="container-fluid px-4">
+    <h1 class="mt-4">Báo cáo & thống kê</h1>
+    <ol class="breadcrumb mb-4">
+        <li class="breadcrumb-item"><a href="@Url.Action("Index", "Dashboard", new { area = "Admin" })">Dashboard</a></li>
+        <li class="breadcrumb-item active">Báo cáo</li>
+    </ol>
+    
+    <div class="row">
+        <div class="col-xl-3 col-md-6">
+            <a href="@Url.Action("Revenue", "Reports", new { area = "Admin" })" class="text-decoration-none">
+                <div class="card bg-primary text-white mb-4 h-100">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <h5 class="card-title">Báo cáo doanh thu</h5>
+                                <p class="mb-0">Theo dõi doanh thu theo thời gian và danh mục</p>
+                            </div>
+                            <div class="text-white-50">
+                                <i class="fas fa-chart-line fa-3x"></i>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="card-footer d-flex align-items-center justify-content-between">
+                        <span>Xem báo cáo</span>
+                        <div class="small text-white"><i class="fas fa-angle-right"></i></div>
+                    </div>
+                </div>
+            </a>
+        </div>
+        <div class="col-xl-3 col-md-6">
+            <a href="@Url.Action("Products", "Reports", new { area = "Admin" })" class="text-decoration-none">
+                <div class="card bg-success text-white mb-4 h-100">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <h5 class="card-title">Báo cáo sản phẩm</h5>
+                                <p class="mb-0">Phân tích sản phẩm bán chạy và xu hướng</p>
+                            </div>
+                            <div class="text-white-50">
+                                <i class="fas fa-utensils fa-3x"></i>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="card-footer d-flex align-items-center justify-content-between">
+                        <span>Xem báo cáo</span>
+                        <div class="small text-white"><i class="fas fa-angle-right"></i></div>
+                    </div>
+                </div>
+            </a>
+        </div>
+        <div class="col-xl-3 col-md-6">
+            <a href="@Url.Action("Customers", "Reports", new { area = "Admin" })" class="text-decoration-none">
+                <div class="card bg-warning text-white mb-4 h-100">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <h5 class="card-title">Báo cáo khách hàng</h5>
+                                <p class="mb-0">Phân tích khách hàng và hành vi mua hàng</p>
+                            </div>
+                            <div class="text-white-50">
+                                <i class="fas fa-users fa-3x"></i>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="card-footer d-flex align-items-center justify-content-between">
+                        <span>Xem báo cáo</span>
+                        <div class="small text-white"><i class="fas fa-angle-right"></i></div>
+                    </div>
+                </div>
+            </a>
+        </div>
+        <div class="col-xl-3 col-md-6">
+            <a href="@Url.Action("OrderStatusReport", "Reports", new { area = "Admin" })" class="text-decoration-none">
+                <div class="card bg-info text-white mb-4 h-100">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <h5 class="card-title">Báo cáo đơn hàng</h5>
+                                <p class="mb-0">Phân tích trạng thái và hiệu suất đơn hàng</p>
+                            </div>
+                            <div class="text-white-50">
+                                <i class="fas fa-shopping-cart fa-3x"></i>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="card-footer d-flex align-items-center justify-content-between">
+                        <span>Xem báo cáo</span>
+                        <div class="small text-white"><i class="fas fa-angle-right"></i></div>
+                    </div>
+                </div>
+            </a>
+        </div>
+    </div>
+    
+    <div class="card mb-4 mt-4">
+        <div class="card-header">
+            <i class="fas fa-calendar-alt me-1"></i>
+            Chọn khoảng thời gian
+        </div>
+        <div class="card-body">
+            <div class="row">
+                <div class="col-lg-8 col-md-10 mx-auto">
+                    <form method="get" action="@Url.Action("Revenue", "Reports", new { area = "Admin" })" class="row" id="reportDateForm">
+                        <div class="col-md-4">
+                            <div class="input-group mb-3">
+                                <span class="input-group-text">Từ ngày</span>
+                                <input type="date" name="startDate" class="form-control" 
+                                       value="@DateTime.Now.AddDays(-30).ToString("yyyy-MM-dd")" />
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="input-group mb-3">
+                                <span class="input-group-text">Đến ngày</span>
+                                <input type="date" name="endDate" class="form-control" 
+                                       value="@DateTime.Now.ToString("yyyy-MM-dd")" />
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="d-flex mb-3">
+                                <select class="form-select me-2" id="reportTypeSelect">
+                                    <option value="Revenue">Báo cáo doanh thu</option>
+                                    <option value="Products">Báo cáo sản phẩm</option>
+                                    <option value="Customers">Báo cáo khách hàng</option>
+                                    <option value="OrderStatusReport">Báo cáo đơn hàng</option>
+                                </select>
+                                <button type="submit" class="btn btn-primary">
+                                    <i class="fas fa-search me-1"></i> Xem
+                                </button>
+                            </div>
+                        </div>
+                    </form>
+                    
+                    <div class="d-flex flex-wrap justify-content-center mt-3">
+                        <button class="btn btn-outline-secondary m-1 quick-range" data-days="7">
+                            7 ngày gần đây
+                        </button>
+                        <button class="btn btn-outline-secondary m-1 quick-range" data-days="30">
+                            30 ngày gần đây
+                        </button>
+                        <button class="btn btn-outline-secondary m-1 quick-range" data-period="this-month">
+                            Tháng này
+                        </button>
+                        <button class="btn btn-outline-secondary m-1 quick-range" data-period="last-month">
+                            Tháng trước
+                        </button>
+                        <button class="btn btn-outline-secondary m-1 quick-range" data-period="this-year">
+                            Năm nay
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="row">
+        <div class="col-lg-6">
+            <div class="card mb-4">
+                <div class="card-header">
+                    <i class="fas fa-info-circle me-1"></i>
+                    Giới thiệu hệ thống báo cáo
+                </div>
+                <div class="card-body">
+                    <p>Hệ thống báo cáo cung cấp các công cụ phân tích dữ liệu toàn diện để giúp bạn đưa ra quyết định kinh doanh thông minh.</p>
+                    <p>Các loại báo cáo bao gồm:</p>
+                    <ul>
+                        <li><strong>Báo cáo doanh thu:</strong> Theo dõi doanh thu theo thời gian, danh mục sản phẩm và phân tích xu hướng.</li>
+                        <li><strong>Báo cáo sản phẩm:</strong> Xác định các sản phẩm bán chạy nhất, phân tích hiệu suất sản phẩm theo danh mục.</li>
+                        <li><strong>Báo cáo khách hàng:</strong> Phân tích hành vi khách hàng, xác định khách hàng thân thiết và xu hướng mua hàng.</li>
+                        <li><strong>Báo cáo đơn hàng:</strong> Theo dõi trạng thái đơn hàng, thời gian xử lý và phân tích hiệu suất.</li>
+                    </ul>
+                    <p>Tất cả báo cáo đều có thể tùy chỉnh theo khoảng thời gian và có thể xuất ra dưới dạng Excel để phân tích sâu hơn.</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-6">
+            <div class="card mb-4">
+                <div class="card-header">
+                    <i class="fas fa-question-circle me-1"></i>
+                    Hướng dẫn sử dụng
+                </div>
+                <div class="card-body">
+                    <p>Để sử dụng hiệu quả hệ thống báo cáo, hãy làm theo các bước sau:</p>
+                    <ol>
+                        <li>Chọn loại báo cáo bạn muốn xem từ các thẻ trên cùng.</li>
+                        <li>Điều chỉnh khoảng thời gian bằng cách sử dụng các bộ lọc ngày hoặc chọn nhanh từ các nút "7 ngày", "30 ngày", v.v.</li>
+                        <li>Sử dụng các biểu đồ và bảng để xem thông tin chi tiết về dữ liệu.</li>
+                        <li>Xuất báo cáo ra Excel nếu bạn cần phân tích sâu hơn hoặc chia sẻ với người khác.</li>
+                    </ol>
+                    <p>Để tối ưu hóa việc sử dụng báo cáo:</p>
+                    <ul>
+                        <li>So sánh dữ liệu theo các khoảng thời gian khác nhau để xác định xu hướng.</li>
+                        <li>Phân tích doanh thu theo danh mục để tối ưu hóa menu.</li>
+                        <li>Sử dụng báo cáo khách hàng để xác định và khen thưởng khách hàng thân thiết.</li>
+                        <li>Theo dõi hiệu suất xử lý đơn hàng để cải thiện dịch vụ.</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Xử lý nút chọn nhanh khoảng thời gian
+            $('.quick-range').click(function(e) {
+                e.preventDefault();
+                
+                const today = new Date();
+                let startDate = new Date();
+                let endDate = new Date();
+                
+                if ($(this).data('days')) {
+                    const days = $(this).data('days');
+                    startDate.setDate(today.getDate() - days + 1);
+                } else if ($(this).data('period')) {
+                    const period = $(this).data('period');
+                    
+                    if (period === 'this-month') {
+                        startDate = new Date(today.getFullYear(), today.getMonth(), 1);
+                    } else if (period === 'last-month') {
+                        startDate = new Date(today.getFullYear(), today.getMonth() - 1, 1);
+                        endDate = new Date(today.getFullYear(), today.getMonth(), 0);
+                    } else if (period === 'this-year') {
+                        startDate = new Date(today.getFullYear(), 0, 1);
+                    }
+                }
+                
+                document.querySelector('input[name="startDate"]').value = formatDate(startDate);
+                document.querySelector('input[name="endDate"]').value = formatDate(endDate);
+            });
+            
+            // Xử lý khi thay đổi loại báo cáo
+            $('#reportTypeSelect').change(function() {
+                const reportType = $(this).val();
+                $('#reportDateForm').attr('action', '@Url.Action("Index", "Reports", new { area = "Admin" })'.replace('Index', reportType));
+            });
+            
+            // Hàm hỗ trợ format ngày tháng
+            function formatDate(date) {
+                const year = date.getFullYear();
+                const month = String(date.getMonth() + 1).padStart(2, '0');
+                const day = String(date.getDate()).padStart(2, '0');
+                return `${year}-${month}-${day}`;
+            }
+        });
+    </script>
+}

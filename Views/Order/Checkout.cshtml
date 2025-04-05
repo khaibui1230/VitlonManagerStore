@@ -1,0 +1,277 @@
+@model QuanVitLonManager.ViewModels.CheckoutViewModel
+@using Microsoft.EntityFrameworkCore
+@using QuanVitLonManager.Models
+@inject QuanVitLonManager.Data.ApplicationDbContext ApplicationDbContext
+@{
+    ViewData["Title"] = "Thanh toán đơn hàng";
+}
+
+<div class="container py-5">
+    <h2 class="mb-4 text-center">@ViewData["Title"]</h2>
+
+    @if (TempData["ErrorMessage"] != null)
+    {
+        <div class="alert alert-danger" role="alert">
+            @TempData["ErrorMessage"]
+        </div>
+    }
+
+    <div id="orderAlert" class="alert" style="display: none;"></div>
+
+    @if (Model == null || Model.CartItems == null || !Model.CartItems.Any())
+    {
+        <div class="alert alert-warning">
+            <h5>Giỏ hàng trống</h5>
+            <p>Vui lòng thêm món ăn vào giỏ hàng để tiếp tục.</p>
+            <a asp-controller="Menu" asp-action="Index" class="btn btn-primary">Xem thực đơn</a>
+        </div>
+    }
+    else
+    {
+        <div class="row">
+            <div class="col-md-7">
+                <div class="card mb-4">
+                    <div class="card-header bg-primary text-white">
+                        <h5 class="card-title mb-0">Thông tin đơn hàng</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="table-responsive">
+                            <table class="table table-striped">
+                                <thead>
+                                    <tr>
+                                        <th>Món ăn</th>
+                                        <th>Đơn giá</th>
+                                        <th>Số lượng</th>
+                                        <th>Thành tiền</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var item in Model.CartItems)
+                                    {
+                                        <tr>
+                                            <td>
+                                                @if (item != null && item.MenuItem != null)
+                                                {
+                                                    <div class="d-flex align-items-center">
+                                                        @if (!string.IsNullOrEmpty(item.MenuItem.ImageUrl))
+                                                        {
+                                                            <img src="@item.MenuItem.ImageUrl" alt="@item.MenuItem.Name" class="img-thumbnail mr-2" style="width: 50px; height: 50px; object-fit: cover;">
+                                                        }
+                                                        <div>
+                                                            <strong>@item.MenuItem.Name</strong>
+                                                            @if (!string.IsNullOrEmpty(item.Notes))
+                                                            {
+                                                                <small class="d-block text-muted">Ghi chú: @item.Notes</small>
+                                                            }
+                                                        </div>
+                                                    </div>
+                                                }
+                                                else
+                                                {
+                                                    <span>Món ăn không có thông tin</span>
+                                                }
+                                            </td>
+                                            <td>
+                                                @if (item != null && item.MenuItem != null)
+                                                {
+                                                    @item.MenuItem.Price.ToString("N0") <span class="small">VNĐ</span>
+                                                }
+                                                else
+                                                {
+                                                    <span>0 VNĐ</span>
+                                                }
+                                            </td>
+                                            <td>@(item?.Quantity ?? 0)</td>
+                                            <td>
+                                                @if (item != null && item.MenuItem != null)
+                                                {
+                                                    @((item.MenuItem.Price * item.Quantity).ToString("N0")) <span class="small">VNĐ</span>
+                                                }
+                                                else
+                                                {
+                                                    <span>0 VNĐ</span>
+                                                }
+                                            </td>
+                                        </tr>
+                                    }
+                                </tbody>
+                                <tfoot>
+                                    <tr>
+                                        <th colspan="3" class="text-right">Tổng tiền:</th>
+                                        <th>@(Model.Order?.TotalAmount.ToString("N0") ?? "0") <span class="small">VNĐ</span></th>
+                                    </tr>
+                                </tfoot>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-md-5">
+                <div class="card">
+                    <div class="card-header bg-primary text-white">
+                        <h5 class="card-title mb-0">Thông tin khách hàng</h5>
+                    </div>
+                    <div class="card-body">
+                        <form id="checkoutForm" method="post" asp-action="PlaceOrder">
+                            @Html.AntiForgeryToken()
+                            
+                            <div asp-validation-summary="All" class="text-danger"></div>
+                            @if (Model.Order != null)
+                            {
+                                <input type="hidden" asp-for="Order.OrderType" />
+                                <input type="hidden" asp-for="Order.TableId" />
+                                <input type="hidden" asp-for="Order.Notes" />
+                            }
+
+                            <div class="form-group mb-3">
+                                <label asp-for="CustomerName" class="form-label">Họ và tên</label>
+                                <input asp-for="CustomerName" class="form-control" required />
+                                <span asp-validation-for="CustomerName" class="text-danger"></span>
+                            </div>
+
+                            <div class="form-group mb-3">
+                                <label asp-for="PhoneNumber" class="form-label">Số điện thoại</label>
+                                <input asp-for="PhoneNumber" class="form-control" required />
+                                <span asp-validation-for="PhoneNumber" class="text-danger"></span>
+                            </div>
+
+                            <div class="form-group mb-3">
+                                <label asp-for="Order.OrderType" class="form-label">Loại đơn hàng</label>
+                                <select asp-for="Order.OrderType" class="form-select">
+                                    <option value="DineIn">Ăn tại chỗ</option>
+                                    <option value="TakeAway">Mang về</option>
+                                </select>
+                            </div>
+
+                            <div id="tableSelection" class="form-group mb-3">
+                                <label asp-for="Order.TableId" class="form-label">Bàn</label>
+                                <select asp-for="Order.TableId" class="form-select">
+                                    @foreach (var table in ViewBag.Tables ?? new List<Table>())
+                                    {
+                                        <option value="@table.Id">@table.Name</option>
+                                    }
+                                </select>
+                            </div>
+
+                            <div class="form-group mb-3">
+                                <label asp-for="Order.Notes" class="form-label">Ghi chú</label>
+                                <textarea asp-for="Order.Notes" class="form-control"></textarea>
+                            </div>
+
+                            <div class="form-group mb-3">
+                                <label asp-for="Order.PaymentMethod" class="form-label">Phương thức thanh toán</label>
+                                <select asp-for="Order.PaymentMethod" class="form-select">
+                                    <option value="Cash">Tiền mặt</option>
+                                    <option value="Card">Thẻ tín dụng/ghi nợ</option>
+                                    <option value="MoMo">Ví MoMo</option>
+                                    <option value="Banking">Chuyển khoản</option>
+                                </select>
+                            </div>
+
+                            <div class="form-group mt-4">
+                                <button type="submit" class="btn btn-success btn-lg w-100" id="confirm-order-btn">
+                                    <i class="fas fa-check-circle"></i> Xác nhận đặt hàng
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+</div>
+
+@section Scripts {
+    @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
+    <script>
+        $(document).ready(function () {
+            // Xử lý hiển thị/ẩn lựa chọn bàn dựa trên loại đơn hàng
+            function updateTableSelection() {
+                if ($('#Order_OrderType').val() === 'DineIn') {
+                    $('#tableSelection').show();
+                } else {
+                    $('#tableSelection').hide();
+                }
+            }
+
+            $('#Order_OrderType').change(updateTableSelection);
+            updateTableSelection();
+
+            // Xử lý form submission
+            $('#checkoutForm').on('submit', function (e) {
+                e.preventDefault();
+                
+                // Hiển thị loading
+                $('#orderAlert').removeClass('alert-danger alert-success').hide();
+                $('#confirm-order-btn')
+                    .prop('disabled', true)
+                    .html('<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Đang xử lý...');
+
+                $.ajax({
+                    url: $(this).attr('action'),
+                    method: 'POST',
+                    data: $(this).serialize(),
+                    success: function (response) {
+                        if (response.success) {
+                            $('#orderAlert')
+                                .removeClass('alert-danger')
+                                .addClass('alert-success')
+                                .html('Đặt hàng thành công!')
+                                .show();
+                                
+                            $('#confirm-order-btn')
+                                .prop('disabled', true)
+                                .html('<i class="fas fa-check-circle"></i> Đặt hàng thành công');
+                            
+                            // Chuyển hướng sau 1 giây
+                            setTimeout(function() {
+                                window.location.href = response.redirectUrl;
+                            }, 1000);
+                        } else {
+                            var errorMessage = response.message || 'Có lỗi xảy ra khi đặt hàng';
+                            if (response.errors && response.errors.length > 0) {
+                                errorMessage += '<ul>';
+                                response.errors.forEach(function(error) {
+                                    errorMessage += '<li>' + error + '</li>';
+                                });
+                                errorMessage += '</ul>';
+                            }
+                            
+                            $('#orderAlert')
+                                .removeClass('alert-success')
+                                .addClass('alert-danger')
+                                .html(errorMessage)
+                                .show();
+                                
+                            $('#confirm-order-btn')
+                                .prop('disabled', false)
+                                .html('<i class="fas fa-check-circle"></i> Xác nhận đặt hàng');
+                        }
+                    },
+                    error: function (xhr, status, error) {
+                        var errorMessage = 'Có lỗi xảy ra khi đặt hàng';
+                        try {
+                            var response = JSON.parse(xhr.responseText);
+                            if (response && response.message) {
+                                errorMessage = response.message;
+                            }
+                        } catch (e) {
+                            console.error('Error parsing response:', e);
+                        }
+                        
+                        $('#orderAlert')
+                            .removeClass('alert-success')
+                            .addClass('alert-danger')
+                            .html(errorMessage)
+                            .show();
+                            
+                        $('#confirm-order-btn')
+                            .prop('disabled', false)
+                            .html('<i class="fas fa-check-circle"></i> Xác nhận đặt hàng');
+                    }
+                });
+            });
+        });
+    </script>
+}

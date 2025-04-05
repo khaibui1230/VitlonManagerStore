@@ -1,0 +1,143 @@
+Xây dựng một trang "Revenue Management View" dành cho Admin với các chức năng sau:
+
+Nhập chi phí nhập hàng:
+
+Cho phép nhập chi tiết số tiền liên quan đến nhập hàng, gồm:
+
+Tiền hàng: Số tiền chi cho việc mua nguyên liệu, món ăn.
+
+Tiền mặt bằng: Chi phí thuê mặt bằng, vận hành cơ sở.
+
+Tiền trả nhân viên: Chi phí trả lương, thưởng cho nhân viên.
+
+Các khoản chi khác nếu có (có thể mở rộng theo yêu cầu sau này).
+
+Hiển thị tổng doanh thu bán được:
+
+Tổng hợp số liệu doanh thu từ các đơn hàng bán ra (đã thanh toán) trong hệ thống.
+
+Hiển thị số liệu theo ngày/tháng để dễ theo dõi và so sánh.
+
+Tính toán và hiển thị tiền lời:
+
+Tính toán lợi nhuận theo công thức:
+Tiền lời = Tổng doanh thu bán được - (Tiền hàng + Tiền mặt bằng + Tiền trả nhân viên + các khoản chi khác)
+
+Hiển thị rõ ràng số tiền lời theo từng khoảng thời gian (ngày, tháng).
+
+Biểu đồ lợi nhuận:
+
+Tích hợp biểu đồ trực quan (ví dụ: sử dụng Chart.js hoặc Google Charts) để hiển thị lợi nhuận theo ngày và theo tháng.
+
+Cho phép người dùng chọn khoảng thời gian, so sánh giữa các ngày/tháng.
+
+Xuất báo cáo doanh thu và lợi nhuận:
+
+Hỗ trợ xuất báo cáo dưới định dạng PDF và Excel.
+
+Báo cáo cần bao gồm các chi tiết:
+
+Tổng doanh thu bán hàng.
+
+Tổng chi phí nhập hàng (chi tiết theo từng mục: tiền hàng, tiền mặt bằng, tiền trả nhân viên, ...).
+
+Tiền lời (lợi nhuận).
+
+Biểu đồ hoặc bảng thống kê chi tiết theo thời gian.
+
+Yêu cầu kỹ thuật và triển khai:
+
+Models:
+
+RevenueEntry:
+
+Id: int
+
+EntryDate: DateTime (Ngày nhập liệu)
+
+TotalSales: decimal (Tổng doanh thu bán được)
+
+ImportCost: decimal (Tổng chi phí nhập hàng)
+
+GoodsCost: decimal (Tiền hàng)
+
+RentCost: decimal (Tiền mặt bằng)
+
+StaffCost: decimal (Tiền trả nhân viên)
+
+OtherCost: decimal (Các khoản chi khác nếu cần)
+
+Profit: decimal (Tiền lời, được tính tự động: TotalSales - (GoodsCost + RentCost + StaffCost + OtherCost))
+
+Controller:
+
+RevenueController:
+
+Index(): Hiển thị danh sách các bản ghi doanh thu theo thời gian, kèm theo biểu đồ lợi nhuận.
+
+Create() (GET): Hiển thị form nhập liệu chi tiết về doanh thu và các khoản chi.
+
+Create() (POST): Xử lý dữ liệu nhập từ form, tính toán Profit và lưu trữ.
+
+ExportReport(string format): Action xuất báo cáo theo định dạng PDF hoặc Excel.
+
+Sử dụng các attribute [Authorize(Roles = "Admin")] để bảo vệ các action này.
+
+Views:
+
+Create Revenue Entry View:
+
+Form nhập liệu với các trường:
+
+Ngày nhập liệu: Date picker.
+
+Tổng doanh thu bán được: Input số (decimal).
+
+Tiền hàng: Input số (decimal).
+
+Tiền mặt bằng: Input số (decimal).
+
+Tiền trả nhân viên: Input số (decimal).
+
+Các khoản chi khác: Input số (decimal) (nếu cần).
+
+Hiển thị kết quả tính toán tự động cho Tiền lời khi người dùng nhập đầy đủ các trường.
+
+Nút "Lưu" để gửi dữ liệu.
+
+Revenue Dashboard View:
+
+Hiển thị bảng tổng hợp các bản ghi doanh thu.
+
+Hiển thị biểu đồ lợi nhuận theo ngày/tháng.
+
+Tùy chọn lọc dữ liệu theo khoảng thời gian.
+
+Nút "Xuất báo cáo" cho phép chọn định dạng PDF hoặc Excel.
+
+Biểu đồ & Xuất báo cáo:
+
+Biểu đồ:
+
+Tích hợp thư viện biểu đồ (Chart.js, Google Charts, …) để hiển thị số liệu lợi nhuận.
+
+Biểu đồ cần cập nhật theo dữ liệu từ database theo khoảng thời gian được chọn.
+
+Xuất báo cáo:
+
+Sử dụng các thư viện như Rotativa hoặc ClosedXML để xuất báo cáo ra PDF/Excel.
+
+Báo cáo chi tiết bao gồm bảng số liệu và biểu đồ lợi nhuận.
+
+Validation & Error Handling:
+
+Đảm bảo các trường số (decimal) được kiểm tra hợp lệ.
+
+Xử lý các lỗi nhập liệu và hiển thị thông báo lỗi thân thiện.
+
+Chú ý:
+
+Đảm bảo rằng toàn bộ dữ liệu nhập vào đều được bảo mật và chỉ có Admin mới được truy cập vào trang này.
+
+Cập nhật giao diện để hiển thị trực quan và thân thiện với người dùng, đồng thời có khả năng responsive cho nhiều thiết bị.
+

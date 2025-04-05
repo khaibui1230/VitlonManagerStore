@@ -1,0 +1,217 @@
+@model MenuItem
+@{
+    ViewData["Title"] = "Thêm món ăn mới";
+    Layout = "_AdminLayout";
+}
+
+<div class="container-fluid px-4">
+    <h1 class="mt-4">Thêm món ăn mới</h1>
+    <ol class="breadcrumb mb-4">
+        <li class="breadcrumb-item"><a href="@Url.Action("Index", "Dashboard", new { area = "Admin" })">Dashboard</a></li>
+        <li class="breadcrumb-item"><a href="@Url.Action("Index", "MenuManagement", new { area = "Admin" })">Menu</a></li>
+        <li class="breadcrumb-item active">Thêm mới</li>
+    </ol>
+    
+    @if (TempData["SuccessMessage"] != null)
+    {
+        <div class="alert alert-success alert-dismissible fade show" role="alert">
+            <i class="fas fa-check-circle me-1"></i> @TempData["SuccessMessage"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+
+    @if (TempData["ErrorMessage"] != null)
+    {
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+            <i class="fas fa-exclamation-circle me-1"></i> @TempData["ErrorMessage"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+    
+    <div class="card mb-4">
+        <div class="card-header">
+            <i class="fas fa-plus-circle me-1"></i>
+            Thông tin món ăn mới
+        </div>
+        <div class="card-body">
+            <form asp-action="Create" method="post" enctype="multipart/form-data">
+                <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+                
+                <div class="row">
+                    <div class="col-md-8">
+                        <div class="mb-3">
+                            <label asp-for="Name" class="form-label">Tên món</label>
+                            <input asp-for="Name" class="form-control" />
+                            <span asp-validation-for="Name" class="text-danger"></span>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label asp-for="Description" class="form-label">Mô tả ngắn</label>
+                            <textarea asp-for="Description" class="form-control" rows="3"></textarea>
+                            <span asp-validation-for="Description" class="text-danger"></span>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label asp-for="DetailedDescription" class="form-label">Mô tả chi tiết</label>
+                            <textarea asp-for="DetailedDescription" class="form-control" rows="5"></textarea>
+                            <small class="text-muted">Mô tả chi tiết về hương vị, cách thưởng thức, nguồn gốc món ăn...</small>
+                            <span asp-validation-for="DetailedDescription" class="text-danger"></span>
+                        </div>
+                        
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label asp-for="Price" class="form-label">Giá (VNĐ)</label>
+                                <input asp-for="Price" class="form-control" type="number" min="0" step="1000" />
+                                <span asp-validation-for="Price" class="text-danger"></span>
+                            </div>
+                            <div class="col-md-6">
+                                <label asp-for="CategoryId" class="form-label">Danh mục</label>
+                                <select asp-for="CategoryId" class="form-select" asp-items="ViewBag.Categories">
+                                    <option value="">-- Chọn danh mục --</option>
+                                </select>
+                                <span asp-validation-for="CategoryId" class="text-danger"></span>
+                            </div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="ImageFile" class="form-label">Hình ảnh</label>
+                            <input type="file" id="ImageFile" name="ImageFile" class="form-control" accept="image/*" onchange="previewImage(this)" />
+                            <small class="form-text text-muted">Chọn hình ảnh hiển thị cho món ăn.</small>
+                            <span asp-validation-for="ImageFile" class="text-danger"></span>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label asp-for="Ingredients" class="form-label">Nguyên liệu</label>
+                            <textarea asp-for="Ingredients" class="form-control" rows="3" placeholder="Nhập các nguyên liệu, phân cách bằng dấu phẩy"></textarea>
+                            <small class="text-muted">Ví dụ: Vịt, gạo nếp, lá sen, gia vị...</small>
+                            <span asp-validation-for="Ingredients" class="text-danger"></span>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label asp-for="PreparationInstructions" class="form-label">Hướng dẫn chế biến</label>
+                            <textarea asp-for="PreparationInstructions" class="form-control" rows="4"></textarea>
+                            <small class="text-muted">Các bước chế biến món ăn, mỗi câu sẽ là một bước.</small>
+                            <span asp-validation-for="PreparationInstructions" class="text-danger"></span>
+                        </div>
+                    </div>
+                    
+                    <div class="col-md-4">
+                        <div class="card mb-3">
+                            <div class="card-header">
+                                <i class="fas fa-image me-1"></i>
+                                Xem trước hình ảnh
+                            </div>
+                            <div class="card-body text-center">
+                                <div id="imagePreview" class="mb-3">
+                                    <img src="~/images/no-image.png" id="imgPreview" class="img-fluid img-thumbnail" style="max-height: 200px;" />
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="card mb-3">
+                            <div class="card-header">
+                                <i class="fas fa-hamburger me-1"></i>
+                                Thông tin dinh dưỡng
+                            </div>
+                            <div class="card-body">
+                                <div class="row g-2">
+                                    <div class="col-md-6">
+                                        <label asp-for="Calories" class="form-label">Calories</label>
+                                        <input asp-for="Calories" class="form-control" type="number" min="0" />
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label asp-for="Protein" class="form-label">Protein (g)</label>
+                                        <input asp-for="Protein" class="form-control" type="number" min="0" />
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label asp-for="Fat" class="form-label">Chất béo (g)</label>
+                                        <input asp-for="Fat" class="form-control" type="number" min="0" />
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label asp-for="Carbs" class="form-label">Carbs (g)</label>
+                                        <input asp-for="Carbs" class="form-control" type="number" min="0" />
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="card">
+                            <div class="card-header">
+                                <i class="fas fa-cogs me-1"></i>
+                                Cài đặt
+                            </div>
+                            <div class="card-body">
+                                <div class="form-check form-switch mb-3">
+                                    <input class="form-check-input" type="checkbox" asp-for="IsAvailable" id="isAvailable">
+                                    <label class="form-check-label" for="isAvailable">Có sẵn để đặt hàng</label>
+                                </div>
+                                
+                                <div class="form-check form-switch mb-3">
+                                    <input class="form-check-input" type="checkbox" id="isFeatured" name="IsFeatured">
+                                    <label class="form-check-label" for="isFeatured">Hiển thị nổi bật</label>
+                                </div>
+                                
+                                <div class="form-check form-switch mb-3">
+                                    <input class="form-check-input" type="checkbox" asp-for="IsNew" id="isNew">
+                                    <label class="form-check-label" for="isNew">Món mới</label>
+                                </div>
+                                
+                                <div class="form-check form-switch mb-3">
+                                    <input class="form-check-input" type="checkbox" asp-for="IsPopular" id="isPopular">
+                                    <label class="form-check-label" for="isPopular">Món phổ biến</label>
+                                </div>
+                                
+                                <div class="form-check form-switch mb-3">
+                                    <input class="form-check-input" type="checkbox" asp-for="IsOnSale" id="isOnSale">
+                                    <label class="form-check-label" for="isOnSale">Đang giảm giá</label>
+                                </div>
+                                
+                                <div class="row g-2 mt-3">
+                                    <div class="col-md-6">
+                                        <label asp-for="OriginalPrice" class="form-label">Giá gốc (VNĐ)</label>
+                                        <input asp-for="OriginalPrice" class="form-control" type="number" min="0" step="1000" />
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label asp-for="DiscountPercentage" class="form-label">Giảm giá (%)</label>
+                                        <input asp-for="DiscountPercentage" class="form-control" type="number" min="0" max="100" />
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="row mt-3">
+                    <div class="col-12">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-save me-1"></i> Lưu món ăn
+                        </button>
+                        <a asp-action="Index" class="btn btn-secondary">
+                            <i class="fas fa-arrow-left me-1"></i> Quay lại danh sách
+                        </a>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    @{
+        await Html.RenderPartialAsync("_ValidationScriptsPartial");
+    }
+    
+    <script>
+        function previewImage(input) {
+            if (input.files && input.files[0]) {
+                var reader = new FileReader();
+                
+                reader.onload = function(e) {
+                    $('#imgPreview').attr('src', e.target.result);
+                }
+                
+                reader.readAsDataURL(input.files[0]);
+            }
+        }
+    </script>
+}

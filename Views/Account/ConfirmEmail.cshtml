@@ -1,0 +1,20 @@
+@{
+    ViewData["Title"] = "Xác nhận Email";
+}
+
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-body text-center">
+                    <h2 class="card-title">@ViewData["Title"]</h2>
+                    @if (ViewData["Message"] != null)
+                    {
+                        <p class="card-text">@ViewData["Message"]</p>
+                    }
+                    <a asp-controller="Home" asp-action="Index" class="btn btn-primary">Về trang chủ</a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

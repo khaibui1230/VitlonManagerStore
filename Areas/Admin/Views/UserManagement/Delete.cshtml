@@ -1,0 +1,96 @@
+@model QuanVitLonManager.ViewModels.UserViewModel
+
+@{
+    ViewData["Title"] = "Xóa người dùng";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<div class="container py-4">
+    <div class="user-manager-container">
+        <h1>Xác nhận xóa</h1>
+        
+        <div class="alert alert-danger mt-4">
+            <h4 class="alert-heading"><i class="fas fa-exclamation-triangle me-2"></i>Cảnh báo!</h4>
+            <p>Bạn có chắc chắn muốn xóa người dùng này? Hành động này không thể hoàn tác.</p>
+        </div>
+        
+        <div class="card mt-4">
+            <div class="card-header bg-danger text-white">
+                <h5 class="mb-0">@Model.UserName</h5>
+            </div>
+            <div class="card-body">
+                <div class="row mb-3">
+                    <div class="col-md-3 fw-bold">ID:</div>
+                    <div class="col-md-9">@Model.Id</div>
+                </div>
+                <div class="row mb-3">
+                    <div class="col-md-3 fw-bold">Tên đăng nhập:</div>
+                    <div class="col-md-9">@Model.UserName</div>
+                </div>
+                <div class="row mb-3">
+                    <div class="col-md-3 fw-bold">Email:</div>
+                    <div class="col-md-9">@Model.Email</div>
+                </div>
+                <div class="row mb-3">
+                    <div class="col-md-3 fw-bold">Số điện thoại:</div>
+                    <div class="col-md-9">@(string.IsNullOrEmpty(Model.PhoneNumber) ? "Chưa cập nhật" : Model.PhoneNumber)</div>
+                </div>
+                <div class="row mb-3">
+                    <div class="col-md-3 fw-bold">Vai trò:</div>
+                    <div class="col-md-9">
+                        @if (Model.Roles.Any())
+                        {
+                            foreach (var role in Model.Roles)
+                            {
+                                <span class="user-role-badge @GetRoleBadgeClass(role)">@GetRoleDisplayName(role)</span>
+                            }
+                        }
+                        else
+                        {
+                            <span class="text-muted">Không có vai trò</span>
+                        }
+                    </div>
+                </div>
+            </div>
+            <div class="card-footer">
+                <form asp-action="Delete" method="post">
+                    <input type="hidden" name="id" value="@Model.Id" />
+                    <div class="d-flex justify-content-between">
+                        <button type="submit" class="btn btn-danger">
+                            <i class="fas fa-trash-alt me-2"></i>Xác nhận xóa
+                        </button>
+                        <a asp-action="Index" class="btn btn-secondary">
+                            <i class="fas fa-arrow-left me-2"></i>Quay lại
+                        </a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+@functions {
+    public string GetRoleBadgeClass(string role)
+    {
+        return role.ToLower() switch
+        {
+            "admin" => "role-admin",
+            "staff" => "role-staff",
+            "chef" => "role-chef",
+            "customer" => "role-customer",
+            _ => "bg-secondary text-white"
+        };
+    }
+
+    public string GetRoleDisplayName(string role)
+    {
+        return role.ToLower() switch
+        {
+            "admin" => "Quản lý",
+            "staff" => "Nhân viên",
+            "chef" => "Đầu bếp",
+            "customer" => "Khách hàng",
+            _ => role
+        };
+    }
+}

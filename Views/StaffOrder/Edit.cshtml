@@ -1,0 +1,331 @@
+@using QuanVitLonManager.ViewModels
+@model StaffOrderViewModel
+@{
+    ViewData["Title"] = "Sửa đơn hàng";
+}
+
+<div class="container">
+    <h2 class="mb-4">@ViewData["Title"] #@Model.OrderId</h2>
+
+    @if (!ViewData.ModelState.IsValid)
+    {
+        <div class="alert alert-danger">
+            <ul>
+                @foreach (var error in ViewData.ModelState.Values.SelectMany(v => v.Errors))
+                {
+                    <li>@error.ErrorMessage</li>
+                }
+            </ul>
+        </div>
+    }
+    
+    @if (Model.HasCompletedItems)
+    {
+        <div class="alert alert-warning">
+            <i class="fas fa-exclamation-triangle"></i> Lưu ý: Đơn hàng này có món đã hoàn thành. Bạn sẽ không thể thay đổi món đã hoàn thành, chỉ có thể điều chỉnh số lượng và ghi chú.
+        </div>
+    }
+
+    <div class="row">
+        <div class="col-md-8">
+            <form id="orderForm" asp-action="Edit" asp-route-id="@Model.OrderId" method="post">
+                <input type="hidden" asp-for="OrderId" />
+                <input type="hidden" asp-for="HasCompletedItems" />
+                
+                <div class="mb-3">
+                    <div class="row">
+                        <div class="col-md-4">
+                            <label class="form-label">Danh mục</label>
+                            <select id="categorySelect" class="form-select" asp-items="Model.Categories">
+                                <option value="">-- Tất cả danh mục --</option>
+                            </select>
+                        </div>
+                        <div class="col-md-8">
+                            <label class="form-label">Tìm kiếm món ăn</label>
+                            <div class="input-group">
+                                <input type="text" id="searchInput" class="form-control" placeholder="Nhập tên món ăn...">
+                                <select id="menuItemSelect" class="form-select" style="display: none;">
+                                    <option value="">-- Chọn món ăn --</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="orderItems" class="mb-3">
+                    <!-- Order items will be added here dynamically -->
+                </div>
+
+                <div class="mb-3">
+                    <label asp-for="OrderType" class="form-label"></label>
+                    <div>
+                        <div class="form-check form-check-inline">
+                            <input class="form-check-input" type="radio" asp-for="OrderType" 
+                                   value="@OrderType.DineIn" id="dineIn" />
+                            <label class="form-check-label" for="dineIn">Ăn tại quán</label>
+                        </div>
+                        <div class="form-check form-check-inline">
+                            <input class="form-check-input" type="radio" asp-for="OrderType" 
+                                   value="@OrderType.TakeAway" id="takeAway" />
+                            <label class="form-check-label" for="takeAway">Mang về</label>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="mb-3" id="tableNumberContainer">
+                    <label asp-for="TableNumber" class="form-label">Số bàn</label>
+                    <input asp-for="TableNumber" class="form-control" placeholder="Nhập số bàn" />
+                </div>
+
+                <div class="mb-3">
+                    <label asp-for="Note" class="form-label">Ghi chú chung (tùy chọn)</label>
+                    <textarea asp-for="Note" class="form-control" rows="2" placeholder="Nhập ghi chú chung nếu cần..."></textarea>
+                </div>
+
+                <div class="mb-3">
+                    <h4>Tổng cộng: <span id="grandTotal">0 đ</span></h4>
+                </div>
+
+                <div class="mb-3">
+                    <button type="submit" class="btn btn-primary" id="submitOrder">
+                        <i class="fas fa-save"></i> Cập nhật đơn hàng
+                    </button>
+                    <a asp-action="Index" class="btn btn-secondary">
+                        <i class="fas fa-arrow-left"></i> Quay lại
+                    </a>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        $(document).ready(function() {
+            let orderItems = [];
+            let menuItems = [];
+            let searchTimeout;
+
+            // Toggle table number field based on order type
+            $('input[name="OrderType"]').change(function() {
+                if ($(this).val() === '@OrderType.DineIn.ToString()') {
+                    $('#tableNumberContainer').show();
+                } else {
+                    $('#tableNumberContainer').hide();
+                    $('#TableNumber').val('');
+                }
+            });
+
+            // Initial state based on default selection
+            if ($('input[name="OrderType"]:checked').val() !== '@OrderType.DineIn.ToString()') {
+                $('#tableNumberContainer').hide();
+            }
+
+            // Tải danh sách món ăn ban đầu
+            loadMenuItems();
+            
+            // Khởi tạo các món ăn hiện có
+            @if (Model.OrderItems != null && Model.OrderItems.Any())
+            {
+                <text>
+                // Thêm các món ăn hiện có vào orderItems
+                @foreach(var item in Model.OrderItems)
+                {
+                    <text>
+                    orderItems.push({
+                        menuItemId: @item.MenuItemId,
+                        name: "@Html.Raw(item.Name.Replace("\"", "\\\""))",
+                        price: @item.Price.ToString("0.00").Replace(",", "."),
+                        quantity: @item.Quantity,
+                        itemNote: "@Html.Raw((item.ItemNote ?? "").Replace("\"", "\\\""))",
+                        isCompleted: @item.IsCompleted.ToString().ToLower(),
+                        dishOrderId: @item.DishOrderId
+                    });
+                    </text>
+                }
+                renderOrderItems();
+                updateGrandTotal();
+                </text>
+            }
+
+            function loadMenuItems() {
+                const categoryId = $('#categorySelect').val();
+                const searchTerm = $('#searchInput').val();
+                
+                $.getJSON('@Url.Action("GetMenuItems")', { categoryId, searchTerm })
+                    .done(function(data) {
+                        menuItems = data;
+                        const dropdown = $('#menuItemSelect');
+                        dropdown.empty().append('<option value="">-- Chọn món ăn --</option>');
+                        
+                        const groups = {};
+                        data.forEach(item => {
+                            if (!groups[item.category]) {
+                                groups[item.category] = [];
+                            }
+                            groups[item.category].push(item);
+                        });
+
+                        Object.keys(groups).sort().forEach(category => {
+                            const optgroup = $('<optgroup>').attr('label', category);
+                            groups[category].forEach(item => {
+                                optgroup.append($('<option>')
+                                    .val(item.id)
+                                    .text(`${item.name} - ${formatCurrency(item.price)}đ`));
+                            });
+                            dropdown.append(optgroup);
+                        });
+
+                        if (searchTerm) {
+                            dropdown.show();
+                        }
+                    })
+                    .fail(function(error) {
+                        console.error("Error loading menu items:", error);
+                        alert("Lỗi khi tải danh sách món ăn. Vui lòng thử lại.");
+                    });
+            }
+
+            $('#categorySelect').change(loadMenuItems);
+
+            $('#searchInput').on('input', function() {
+                clearTimeout(searchTimeout);
+                searchTimeout = setTimeout(loadMenuItems, 300);
+            });
+
+            $('#searchInput').focus(function() {
+                $('#menuItemSelect').show();
+            });
+
+            function formatCurrency(amount) {
+                return new Intl.NumberFormat('vi-VN').format(amount);
+            }
+
+            function updateGrandTotal() {
+                const total = orderItems.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+                $('#grandTotal').text(formatCurrency(total) + ' đ');
+            }
+
+            function removeItem(index) {
+                // Không thể xóa món đã hoàn thành
+                if (orderItems[index].isCompleted) {
+                    alert('Không thể xóa món đã hoàn thành. Hãy liên hệ quản lý nếu cần thiết.');
+                    return;
+                }
+                
+                orderItems.splice(index, 1);
+                renderOrderItems();
+                updateGrandTotal();
+            }
+
+            function renderOrderItems() {
+                const container = $('#orderItems');
+                container.empty();
+
+                orderItems.forEach((item, index) => {
+                    const isCompletedClass = item.isCompleted ? 'bg-light' : '';
+                    const isCompletedBadge = item.isCompleted ? 
+                        '<span class="badge bg-success ms-2">Đã hoàn thành</span>' : '';
+                    
+                    container.append(`
+                        <div class="card mb-2 ${isCompletedClass}">
+                            <div class="card-body">
+                                <input type="hidden" name="OrderItems[${index}].MenuItemId" value="${item.menuItemId}">
+                                <input type="hidden" name="OrderItems[${index}].Name" value="${item.name}">
+                                <input type="hidden" name="OrderItems[${index}].Price" value="${item.price}">
+                                <input type="hidden" name="OrderItems[${index}].IsCompleted" value="${item.isCompleted}">
+                                <input type="hidden" name="OrderItems[${index}].DishOrderId" value="${item.dishOrderId}">
+                                <div class="row align-items-center">
+                                    <div class="col">
+                                        <h5 class="mb-0">${item.name} ${isCompletedBadge}</h5>
+                                        <small>${formatCurrency(item.price)} đ</small>
+                                        <input type="text" name="OrderItems[${index}].ItemNote" 
+                                               class="form-control form-control-sm mt-2 item-note" 
+                                               value="${item.itemNote || ''}" 
+                                               placeholder="Ghi chú cho món này (tùy chọn)..."
+                                               data-index="${index}">
+                                    </div>
+                                    <div class="col-auto">
+                                        <input type="number" name="OrderItems[${index}].Quantity" 
+                                               class="form-control form-control-sm quantity-input" 
+                                               value="${item.quantity}" min="1" style="width: 80px"
+                                               data-index="${index}">
+                                    </div>
+                                    <div class="col-auto">
+                                        <span class="fw-bold">${formatCurrency(item.price * item.quantity)} đ</span>
+                                    </div>
+                                    <div class="col-auto">
+                                        <button type="button" class="btn btn-sm btn-danger remove-item" data-index="${index}" ${item.isCompleted ? 'disabled' : ''}>
+                                            <i class="fas fa-times"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    `);
+                });
+
+                // Bind events for new elements
+                $('.quantity-input').on('change', function() {
+                    const index = $(this).data('index');
+                    orderItems[index].quantity = parseInt($(this).val()) || 1;
+                    renderOrderItems();
+                    updateGrandTotal();
+                });
+
+                $('.item-note').on('change', function() {
+                    const index = $(this).data('index');
+                    orderItems[index].itemNote = $(this).val();
+                });
+
+                $('.remove-item').on('click', function() {
+                    removeItem($(this).data('index'));
+                });
+            }
+
+            $('#menuItemSelect').change(function() {
+                const selected = $(this).find('option:selected');
+                if (selected.val()) {
+                    const [name, price] = selected.text().split(' - ');
+                    const menuItemId = selected.val();
+                    const parsedPrice = parseFloat(price.replace(/[^\d]/g, ''));
+
+                    // Check if item already exists in orderItems
+                    const existingItemIndex = orderItems.findIndex(item => item.menuItemId === menuItemId && !item.isCompleted);
+                    
+                    if (existingItemIndex !== -1) {
+                        // If item exists, increment quantity
+                        orderItems[existingItemIndex].quantity += 1;
+                    } else {
+                        // If item doesn't exist, add new item
+                        orderItems.push({
+                            menuItemId: menuItemId,
+                            name: name,
+                            price: parsedPrice,
+                            quantity: 1,
+                            itemNote: "",
+                            isCompleted: false,
+                            dishOrderId: 0
+                        });
+                    }
+                    
+                    renderOrderItems();
+                    updateGrandTotal();
+                    $(this).val(''); // Reset select
+                }
+            });
+
+            $('#orderForm').on('submit', function(e) {
+                if (orderItems.length === 0) {
+                    e.preventDefault();
+                    alert('Vui lòng chọn ít nhất một món ăn');
+                    return false;
+                }
+                
+                // Hiển thị thông báo khi đang xử lý
+                $('#submitOrder').prop('disabled', true).html('<i class="fas fa-spinner fa-spin"></i> Đang xử lý...');
+                return true;
+            });
+        });
+    </script>
+} 

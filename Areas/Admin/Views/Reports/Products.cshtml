@@ -1,0 +1,377 @@
+@model ProductsReportViewModel
+@{
+    ViewData["Title"] = "Báo cáo sản phẩm";
+    Layout = "_AdminLayout";
+}
+
+<div class="container-fluid px-4">
+    <h1 class="mt-4">Báo cáo sản phẩm</h1>
+    <ol class="breadcrumb mb-4">
+        <li class="breadcrumb-item"><a href="@Url.Action("Index", "Dashboard", new { area = "Admin" })">Dashboard</a></li>
+        <li class="breadcrumb-item"><a href="@Url.Action("Index", "Reports", new { area = "Admin" })">Báo cáo</a></li>
+        <li class="breadcrumb-item active">Sản phẩm</li>
+    </ol>
+    
+    <div class="card mb-4">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <div>
+                <i class="fas fa-calendar-alt me-1"></i>
+                Khoảng thời gian: @Model.StartDate.ToString("dd/MM/yyyy") - @Model.EndDate.ToString("dd/MM/yyyy")
+            </div>
+        </div>
+        <div class="card-body">
+            <form method="get" class="row mb-4" id="dateRangeForm">
+                <div class="col-md-4">
+                    <div class="input-group">
+                        <span class="input-group-text">Từ ngày</span>
+                        <input type="date" name="startDate" class="form-control" 
+                               value="@Model.StartDate.ToString("yyyy-MM-dd")" />
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="input-group">
+                        <span class="input-group-text">Đến ngày</span>
+                        <input type="date" name="endDate" class="form-control" 
+                               value="@Model.EndDate.ToString("yyyy-MM-dd")" />
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="d-flex">
+                        <button type="submit" class="btn btn-primary me-2">
+                            <i class="fas fa-filter me-1"></i> Lọc
+                        </button>
+                        <div class="dropdown">
+                            <button class="btn btn-outline-secondary dropdown-toggle" type="button" id="quickDateRange" data-bs-toggle="dropdown">
+                                Chọn nhanh
+                            </button>
+                            <ul class="dropdown-menu">
+                                <li><a class="dropdown-item quick-range" href="#" data-days="7">7 ngày gần đây</a></li>
+                                <li><a class="dropdown-item quick-range" href="#" data-days="30">30 ngày gần đây</a></li>
+                                <li><a class="dropdown-item quick-range" href="#" data-days="90">3 tháng gần đây</a></li>
+                                <li><a class="dropdown-item quick-range" href="#" data-days="365">1 năm gần đây</a></li>
+                                <li><hr class="dropdown-divider"></li>
+                                <li><a class="dropdown-item quick-range" href="#" data-period="this-month">Tháng này</a></li>
+                                <li><a class="dropdown-item quick-range" href="#" data-period="last-month">Tháng trước</a></li>
+                                <li><a class="dropdown-item quick-range" href="#" data-period="this-year">Năm nay</a></li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+    
+    <div class="row">
+        <div class="col-xl-8">
+            <div class="card mb-4">
+                <div class="card-header">
+                    <i class="fas fa-chart-bar me-1"></i>
+                    Top 10 món ăn bán chạy nhất
+                </div>
+                <div class="card-body">
+                    <canvas id="topProductsChart" width="100%" height="40"></canvas>
+                </div>
+            </div>
+        </div>
+        <div class="col-xl-4">
+            <div class="card mb-4">
+                <div class="card-header">
+                    <i class="fas fa-chart-pie me-1"></i>
+                    Phân bổ số lượng bán theo danh mục
+                </div>
+                <div class="card-body">
+                    <canvas id="categorySalesChart" width="100%" height="40"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="card mb-4">
+        <div class="card-header">
+            <i class="fas fa-table me-1"></i>
+            Top món ăn bán chạy
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-bordered table-hover" id="topProductsTable">
+                    <thead class="table-light">
+                        <tr>
+                            <th>STT</th>
+                            <th>Tên món</th>
+                            <th class="text-center">Số lượng</th>
+                            <th class="text-end">Doanh thu</th>
+                            <th class="text-end">Giá trung bình</th>
+                            <th class="text-center">Chi tiết</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @{int stt = 1;}
+                        @foreach (var item in Model.TopSellingItems.OrderByDescending(t => t.TotalQuantity))
+                        {
+                            <tr>
+                                <td>@(stt++)</td>
+                                <td>@item.MenuItemName</td>
+                                <td class="text-center">@item.TotalQuantity</td>
+                                <td class="text-end">@item.TotalRevenue.ToString("N0") đ</td>
+                                <td class="text-end">@item.AveragePrice.ToString("N0") đ</td>
+                                <td class="text-center">
+                                    <a href="@Url.Action("Details", "MenuManagement", new { area = "Admin", id = item.MenuItemId })" class="btn btn-sm btn-outline-primary">
+                                        <i class="fas fa-eye"></i>
+                                    </a>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    
+    <div class="card mb-4">
+        <div class="card-header">
+            <i class="fas fa-tags me-1"></i>
+            Doanh số theo danh mục
+        </div>
+        <div class="card-body">
+            <div class="row">
+                @foreach (var category in Model.CategorySalesData.OrderByDescending(c => c.Revenue))
+                {
+                    <div class="col-xl-4 col-md-6 mb-4">
+                        <div class="card border-left-primary h-100 py-2">
+                            <div class="card-body">
+                                <div class="row no-gutters align-items-center">
+                                    <div class="col mr-2">
+                                        <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">
+                                            @category.CategoryName
+                                        </div>
+                                        <div class="h5 mb-0 font-weight-bold text-gray-800">@category.Revenue.ToString("N0") đ</div>
+                                        <div class="mt-2 text-muted small">
+                                            Số lượng: <span class="font-weight-bold">@category.Quantity</span>
+                                        </div>
+                                    </div>
+                                    <div class="col-auto">
+                                        <i class="fas fa-utensils fa-2x text-gray-300"></i>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                }
+            </div>
+        </div>
+    </div>
+    
+    <div class="card mb-4">
+        <div class="card-header">
+            <i class="fas fa-chart-line me-1"></i>
+            Phân tích xu hướng sản phẩm
+        </div>
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-6 mb-4">
+                    <div class="card">
+                        <div class="card-header bg-primary text-white">
+                            <i class="fas fa-arrow-up me-1"></i>
+                            Sản phẩm tăng trưởng
+                        </div>
+                        <div class="card-body">
+                            <div class="table-responsive">
+                                <table class="table table-sm table-hover">
+                                    <thead>
+                                        <tr>
+                                            <th>Tên món</th>
+                                            <th class="text-end">Tăng trưởng</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        @foreach (var item in ViewBag.GrowingProducts ?? new List<dynamic>())
+                                        {
+                                            <tr>
+                                                <td>@item.Name</td>
+                                                <td class="text-end">
+                                                    <span class="text-success">
+                                                        <i class="fas fa-arrow-up me-1"></i> @item.GrowthRate.ToString("0.0")%
+                                                    </span>
+                                                </td>
+                                            </tr>
+                                        }
+                                        @if ((ViewBag.GrowingProducts as IEnumerable<dynamic>)?.Any() != true)
+                                        {
+                                            <tr>
+                                                <td colspan="2" class="text-center">Không có dữ liệu</td>
+                                            </tr>
+                                        }
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-6 mb-4">
+                    <div class="card">
+                        <div class="card-header bg-danger text-white">
+                            <i class="fas fa-arrow-down me-1"></i>
+                            Sản phẩm giảm
+                        </div>
+                        <div class="card-body">
+                            <div class="table-responsive">
+                                <table class="table table-sm table-hover">
+                                    <thead>
+                                        <tr>
+                                            <th>Tên món</th>
+                                            <th class="text-end">Giảm</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        @foreach (var item in ViewBag.DecliningProducts ?? new List<dynamic>())
+                                        {
+                                            <tr>
+                                                <td>@item.Name</td>
+                                                <td class="text-end">
+                                                    <span class="text-danger">
+                                                        <i class="fas fa-arrow-down me-1"></i> @Math.Abs(item.GrowthRate).ToString("0.0")%
+                                                    </span>
+                                                </td>
+                                            </tr>
+                                        }
+                                        @if ((ViewBag.DecliningProducts as IEnumerable<dynamic>)?.Any() != true)
+                                        {
+                                            <tr>
+                                                <td colspan="2" class="text-center">Không có dữ liệu</td>
+                                            </tr>
+                                        }
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@3.7.1/dist/chart.min.js"></script>
+    <script src="https://cdn.datatables.net/1.10.25/js/jquery.dataTables.min.js"></script>
+    <script src="https://cdn.datatables.net/1.10.25/js/dataTables.bootstrap5.min.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Biểu đồ top sản phẩm
+            var topProductsCtx = document.getElementById('topProductsChart');
+            var topProductsChart = new Chart(topProductsCtx, {
+                type: 'bar',
+                data: {
+                    labels: [@Html.Raw(string.Join(",", Model.TopSellingItems.OrderByDescending(t => t.TotalQuantity).Take(10).Select(t => $"'{t.MenuItemName}'")))],
+                    datasets: [{
+                        label: 'Số lượng bán ra',
+                        data: [@string.Join(",", Model.TopSellingItems.OrderByDescending(t => t.TotalQuantity).Take(10).Select(t => t.TotalQuantity))],
+                        backgroundColor: 'rgba(0, 123, 255, 0.7)',
+                        borderColor: 'rgba(0, 123, 255, 1)',
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    indexAxis: 'y',
+                    responsive: true,
+                    scales: {
+                        x: {
+                            beginAtZero: true,
+                            title: {
+                                display: true,
+                                text: 'Số lượng'
+                            }
+                        }
+                    }
+                }
+            });
+            
+            // Biểu đồ phân bố danh mục
+            var categoryCtx = document.getElementById('categorySalesChart');
+            var categoryChart = new Chart(categoryCtx, {
+                type: 'pie',
+                data: {
+                    labels: [@Html.Raw(string.Join(",", Model.CategorySalesData.Select(c => $"'{c.CategoryName}'")))],
+                    datasets: [{
+                        data: [@string.Join(",", Model.CategorySalesData.Select(c => c.Quantity))],
+                        backgroundColor: [
+                            'rgba(255, 99, 132, 0.7)',
+                            'rgba(54, 162, 235, 0.7)',
+                            'rgba(255, 206, 86, 0.7)',
+                            'rgba(75, 192, 192, 0.7)',
+                            'rgba(153, 102, 255, 0.7)',
+                            'rgba(255, 159, 64, 0.7)',
+                            'rgba(199, 199, 199, 0.7)',
+                            'rgba(83, 102, 255, 0.7)'
+                        ]
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: {
+                            position: 'right',
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    var label = context.label || '';
+                                    var value = context.raw || 0;
+                                    var total = context.dataset.data.reduce((a, b) => a + b, 0);
+                                    var percentage = ((value / total) * 100).toFixed(1);
+                                    return label + ': ' + value + ' món (' + percentage + '%)';
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+            
+            // DataTable cho bảng top sản phẩm
+            $('#topProductsTable').DataTable({
+                language: {
+                    url: '//cdn.datatables.net/plug-ins/1.10.25/i18n/Vietnamese.json'
+                },
+                pageLength: 10,
+                lengthMenu: [[10, 25, 50, -1], [10, 25, 50, "Tất cả"]]
+            });
+            
+            // Xử lý nút chọn nhanh khoảng thời gian
+            $('.quick-range').click(function(e) {
+                e.preventDefault();
+                
+                const today = new Date();
+                let startDate = new Date();
+                let endDate = new Date();
+                
+                if ($(this).data('days')) {
+                    const days = $(this).data('days');
+                    startDate.setDate(today.getDate() - days + 1);
+                } else if ($(this).data('period')) {
+                    const period = $(this).data('period');
+                    
+                    if (period === 'this-month') {
+                        startDate = new Date(today.getFullYear(), today.getMonth(), 1);
+                    } else if (period === 'last-month') {
+                        startDate = new Date(today.getFullYear(), today.getMonth() - 1, 1);
+                        endDate = new Date(today.getFullYear(), today.getMonth(), 0);
+                    } else if (period === 'this-year') {
+                        startDate = new Date(today.getFullYear(), 0, 1);
+                    }
+                }
+                
+                document.querySelector('input[name="startDate"]').value = formatDate(startDate);
+                document.querySelector('input[name="endDate"]').value = formatDate(endDate);
+                document.getElementById('dateRangeForm').submit();
+            });
+            
+            // Hàm hỗ trợ format ngày tháng
+            function formatDate(date) {
+                const year = date.getFullYear();
+                const month = String(date.getMonth() + 1).padStart(2, '0');
+                const day = String(date.getDate()).padStart(2, '0');
+                return `${year}-${month}-${day}`;
+            }
+        });
+    </script>
+} 

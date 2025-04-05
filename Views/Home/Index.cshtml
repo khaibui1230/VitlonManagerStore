@@ -1,0 +1,260 @@
+@model IEnumerable<QuanVitLonManager.Models.Category>
+
+@{
+    ViewData["Title"] = "Trang chủ";
+}
+
+<!-- Hero Banner -->
+<div class="hero-banner mb-5">
+    <div id="mainCarousel" class="carousel slide" data-bs-ride="carousel">
+        <div class="carousel-indicators">
+            <button type="button" data-bs-target="#mainCarousel" data-bs-slide-to="0" class="active"></button>
+            <button type="button" data-bs-target="#mainCarousel" data-bs-slide-to="1"></button>
+            <button type="button" data-bs-target="#mainCarousel" data-bs-slide-to="2"></button>
+        </div>
+        <div class="carousel-inner">
+            <div class="carousel-item active">
+                <img src="~/images/banner1.jpg" class="d-block w-100" alt="Trứng vịt lộn thượng hạng">
+                <div class="carousel-caption">
+                    <h1 class="display-4 fw-bold">Trứng Vịt Lộn Thượng Hạng</h1>
+                    <p class="lead">Tinh hoa ẩm thực Việt, dinh dưỡng mỗi ngày</p>
+                    <a href="@Url.Action("Index", "Menu")" class="btn btn-primary btn-lg mt-3">Đặt hàng ngay</a>
+                </div>
+            </div>
+            <div class="carousel-item">
+                <img src="~/images/banner2.jpg" class="d-block w-100" alt="Combo ưu đãi">
+                <div class="carousel-caption">
+                    <h1 class="display-4 fw-bold">Combo Ưu Đãi</h1>
+                    <p class="lead">Giảm 20% cho đơn hàng trên 200.000đ</p>
+                    <a href="@Url.Action("Promotion", "Home")" class="btn btn-primary btn-lg mt-3">Xem ưu đãi</a>
+                </div>
+            </div>
+            <div class="carousel-item">
+                <img src="~/images/banner3.jpg" class="d-block w-100" alt="Đặt bàn">
+                <div class="carousel-caption">
+                    <h1 class="display-4 fw-bold">Không Gian Ẩm Thực</h1>
+                    <p class="lead">Trải nghiệm vịt lộn theo cách hoàn toàn mới</p>
+                    <a href="@Url.Action("Index", "Reservation")" class="btn btn-primary btn-lg mt-3">Đặt bàn ngay</a>
+                </div>
+            </div>
+        </div>
+        <button class="carousel-control-prev" type="button" data-bs-target="#mainCarousel" data-bs-slide="prev">
+            <span class="carousel-control-prev-icon" aria-hidden="true"></span>
+            <span class="visually-hidden">Previous</span>
+        </button>
+        <button class="carousel-control-next" type="button" data-bs-target="#mainCarousel" data-bs-slide="next">
+            <span class="carousel-control-next-icon" aria-hidden="true"></span>
+            <span class="visually-hidden">Next</span>
+        </button>
+    </div>
+</div>
+
+<!-- Giới thiệu ngắn -->
+<section class="intro-section py-5 mb-5">
+    <div class="container">
+        <div class="row align-items-center">
+            <div class="col-lg-6 mb-4 mb-lg-0">
+                <img src="~/images/about-intro.jpg" alt="Về chúng tôi" class="img-fluid rounded shadow-lg">
+            </div>
+            <div class="col-lg-6">
+                <h2 class="section-title text-start">VỀ CHÚNG TÔI</h2>
+                <p class="lead">Quán Vịt Lộn tự hào là thương hiệu hàng đầu về trứng vịt lộn chất lượng cao tại Việt Nam.</p>
+                <p>Với hơn 15 năm kinh nghiệm, chúng tôi cam kết mang đến những sản phẩm tươi ngon, an toàn vệ sinh thực phẩm và giàu dinh dưỡng. Trứng vịt lộn của chúng tôi được tuyển chọn từ những trang trại sạch, đảm bảo nguồn gốc rõ ràng.</p>
+                <div class="d-flex mt-4">
+                    <div class="me-4 text-center">
+                        <i class="fas fa-medal fa-2x text-primary mb-2"></i>
+                        <h5>Chất Lượng</h5>
+                    </div>
+                    <div class="me-4 text-center">
+                        <i class="fas fa-truck fa-2x text-primary mb-2"></i>
+                        <h5>Giao Hàng Nhanh</h5>
+                    </div>
+                    <div class="text-center">
+                        <i class="fas fa-heart fa-2x text-primary mb-2"></i>
+                        <h5>Uy Tín</h5>
+                    </div>
+                </div>
+                <a href="@Url.Action("About", "Home")" class="btn btn-outline-primary mt-4">Tìm hiểu thêm</a>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Hotline và thông tin đặt hàng -->
+<div class="hotline-banner p-4 mb-5">
+    <div class="container">
+        <div class="row align-items-center">
+            <div class="col-md-2 text-center">
+                <img src="~/images/logo.png" alt="Logo" height="80" class="mb-3 mb-md-0">
+            </div>
+            <div class="col-md-4">
+                <h3 class="mb-2"><i class="fas fa-phone-alt me-2"></i>1900 6886</h3>
+                <p class="mb-0 lead">Hotline đặt hàng 24/7</p>
+            </div>
+            <div class="col-md-6">
+                <p class="mb-0">
+                    <span class="badge bg-white text-danger me-2">FREESHIP</span>
+                    Miễn phí giao hàng cho đơn từ 200.000đ trong nội thành. Đặt hàng qua website, app hoặc gọi hotline.
+                </p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Danh mục sản phẩm nổi bật -->
+<section class="featured-products mb-5">
+    <div class="container">
+        <h2 class="section-title mb-4">SẢN PHẨM NỔI BẬT</h2>
+        
+        <div class="row">
+            @foreach (var category in Model)
+            {
+                <div class="col-6 col-md-3 mb-4">
+                    <div class="category-card">
+                        <a href="/Menu/Category/@category.Id" class="text-decoration-none">
+                            <div class="card h-100">
+                                <div class="card-img-container">
+                                    <img src="~/images/categories/default.jpg" class="card-img-top" alt="@category.Name">
+                                    <div class="overlay">
+                                        <span class="btn btn-sm btn-light">Xem ngay</span>
+                                    </div>
+                                </div>
+                                <div class="card-body text-center">
+                                    <h5 class="card-title">@category.Name</h5>
+                                    <p class="card-text">@category.Description</p>
+                                </div>
+                            </div>
+                        </a>
+                    </div>
+                </div>
+            }
+        </div>
+        
+        <div class="text-center mt-4">
+            <a href="@Url.Action("Index", "Menu")" class="btn btn-primary btn-lg">Xem tất cả sản phẩm</a>
+        </div>
+    </div>
+</section>
+
+<!-- Tại sao chọn chúng tôi -->
+<section class="why-choose-us py-5 mb-5 bg-light">
+    <div class="container">
+        <h2 class="section-title mb-5">TẠI SAO CHỌN CHÚNG TÔI</h2>
+        
+        <div class="row g-4">
+            <div class="col-md-4">
+                <div class="feature-box text-center p-4 h-100">
+                    <div class="feature-icon mb-3">
+                        <i class="fas fa-egg fa-3x text-primary"></i>
+                    </div>
+                    <h4>Sản phẩm tươi ngon</h4>
+                    <p>Trứng vịt lộn được tuyển chọn kỹ lưỡng, đảm bảo độ tươi ngon và dinh dưỡng cao nhất.</p>
+                </div>
+            </div>
+            
+            <div class="col-md-4">
+                <div class="feature-box text-center p-4 h-100">
+                    <div class="feature-icon mb-3">
+                        <i class="fas fa-certificate fa-3x text-primary"></i>
+                    </div>
+                    <h4>Chứng nhận VSATTP</h4>
+                    <p>Đạt tiêu chuẩn vệ sinh an toàn thực phẩm, quy trình chế biến nghiêm ngặt.</p>
+                </div>
+            </div>
+            
+            <div class="col-md-4">
+                <div class="feature-box text-center p-4 h-100">
+                    <div class="feature-icon mb-3">
+                        <i class="fas fa-shipping-fast fa-3x text-primary"></i>
+                    </div>
+                    <h4>Giao hàng nhanh chóng</h4>
+                    <p>Dịch vụ giao hàng nhanh trong vòng 30 phút đối với khu vực nội thành.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Đánh giá khách hàng -->
+<section class="testimonials mb-5">
+    <div class="container">
+        <h2 class="section-title mb-4">KHÁCH HÀNG NÓI GÀ VỀ CHÚNG TÔI</h2>
+        
+        <div class="row">
+            <div class="col-md-4 mb-4">
+                <div class="testimonial-card p-4">
+                    <div class="d-flex align-items-center mb-3">
+                        <img src="~/images/testimonials/user1.jpg" alt="Khách hàng" class="rounded-circle me-3" width="60">
+                        <div>
+                            <h5 class="mb-0">Nguyễn Văn A</h5>
+                            <div class="text-warning">
+                                <i class="fas fa-star"></i>
+                                <i class="fas fa-star"></i>
+                                <i class="fas fa-star"></i>
+                                <i class="fas fa-star"></i>
+                                <i class="fas fa-star"></i>
+                            </div>
+                        </div>
+                    </div>
+                    <p class="testimonial-text">"Trứng vịt lộn ở đây thực sự ngon, tươi và chất lượng. Tôi đã thử nhiều nơi nhưng vẫn quay lại đây vì hương vị đặc biệt."</p>
+                </div>
+            </div>
+            
+            <div class="col-md-4 mb-4">
+                <div class="testimonial-card p-4">
+                    <div class="d-flex align-items-center mb-3">
+                        <img src="~/images/testimonials/user2.jpg" alt="Khách hàng" class="rounded-circle me-3" width="60">
+                        <div>
+                            <h5 class="mb-0">Trần Thị B</h5>
+                            <div class="text-warning">
+                                <i class="fas fa-star"></i>
+                                <i class="fas fa-star"></i>
+                                <i class="fas fa-star"></i>
+                                <i class="fas fa-star"></i>
+                                <i class="fas fa-star-half-alt"></i>
+                            </div>
+                        </div>
+                    </div>
+                    <p class="testimonial-text">"Dịch vụ giao hàng nhanh, nhân viên thân thiện. Đặc biệt là trứng vịt lộn luôn nóng hổi khi đến tay, rất hài lòng!"</p>
+                </div>
+            </div>
+            
+            <div class="col-md-4 mb-4">
+                <div class="testimonial-card p-4">
+                    <div class="d-flex align-items-center mb-3">
+                        <img src="~/images/testimonials/user3.jpg" alt="Khách hàng" class="rounded-circle me-3" width="60">
+                        <div>
+                            <h5 class="mb-0">Lê Văn C</h5>
+                            <div class="text-warning">
+                                <i class="fas fa-star"></i>
+                                <i class="fas fa-star"></i>
+                                <i class="fas fa-star"></i>
+                                <i class="fas fa-star"></i>
+                                <i class="fas fa-star"></i>
+                            </div>
+                        </div>
+                    </div>
+                    <p class="testimonial-text">"Tôi thường xuyên đặt combo vịt lộn cho gia đình vào cuối tuần. Giá cả hợp lý, chất lượng tuyệt vời, sẽ tiếp tục ủng hộ!"</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Call to action -->
+<section class="cta-section py-5 mb-5">
+    <div class="container">
+        <div class="row justify-content-center">
+            <div class="col-lg-10">
+                <div class="cta-content text-center p-5">
+                    <h2 class="display-5 fw-bold text-white mb-4">Thưởng thức ngay hôm nay!</h2>
+                    <p class="lead text-white mb-4">Đặt hàng online hoặc ghé thăm cửa hàng của chúng tôi để trải nghiệm hương vị đặc biệt.</p>
+                    <div class="d-flex justify-content-center flex-wrap gap-3">
+                        <a href="@Url.Action("Index", "Menu")" class="btn btn-light btn-lg">Đặt hàng ngay</a>
+                        <a href="@Url.Action("Index", "Reservation")" class="btn btn-outline-light btn-lg">Đặt bàn</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>

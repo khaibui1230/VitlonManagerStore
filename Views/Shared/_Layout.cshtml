@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@ViewData["Title"] - Quán Vịt Lộn</title>
+    <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
+    <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/QuanVitLonManager.styles.css" asp-append-version="true" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css" />
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&family=Montserrat:wght@400;500;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
+    @await RenderSectionAsync("Styles", required: false)
+    @await RenderSectionAsync("Head", required: false)
+</head>
+<body>
+    <header>
+        <!-- Thanh thông tin trên cùng -->
+        <div class="top-bar bg-dark text-white py-2">
+            <div class="container">
+                <div class="row">
+                    <div class="col-md-6">
+                        <span><i class="fas fa-phone-alt me-2"></i>Hotline: 0379665639</span>
+                        <span class="ms-3"><i class="far fa-clock me-2"></i>Giờ mở cửa: 18:00 - 1:00</span>
+                    </div>
+                    <div class="col-md-6 text-end">
+                        <a href="#" class="text-white me-3"><i class="fab fa-facebook-f"></i></a>
+                        <a href="#" class="text-white me-3"><i class="fab fa-instagram"></i></a>
+                        <a href="#" class="text-white"><i class="fab fa-tiktok"></i></a>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <nav class="navbar navbar-expand-lg navbar-light bg-white border-bottom box-shadow py-3">
+            <div class="container">
+                <a class="navbar-brand" asp-area="" asp-controller="Home" asp-action="Index">
+                    <img src="/images/menu/logo.jpg" alt="Logo" height="50">
+                </a>
+                <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target=".navbar-collapse" aria-controls="navbarSupportedContent"
+                        aria-expanded="false" aria-label="Toggle navigation">
+                    <span class="navbar-toggler-icon"></span>
+                </button>
+                <!-- Replace the navbar-nav section with this conditional rendering -->
+                <div class="navbar-collapse collapse d-sm-inline-flex justify-content-between">
+                    @if (User.IsInRole("Chef"))
+                    {
+                        <!-- Chef-only navigation -->
+                        <ul class="navbar-nav mx-auto">
+                            <li class="nav-item">
+                                <a class="nav-link text-dark fw-bold mx-2" asp-controller="Chef" asp-action="Index">
+                                    <i class="fas fa-chart-pie"></i> THỐNG KÊ
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link text-dark fw-bold mx-2" href="@Url.Action("Index", "Chef", new { filterStatus = "pending" })">
+                                    <i class="fas fa-utensils"></i> MÓN CẦN LÀM
+                                </a>
+                            </li>
+                        </ul>
+                    }
+                    @if (User.IsInRole("NhanVien") && !User.IsInRole("Chef"))
+                    {
+                        <!-- Staff-only navigation -->
+                        <ul class="navbar-nav mx-auto">
+                            <li class="nav-item">
+                                <a class="nav-link text-dark fw-bold mx-2" asp-controller="StaffOrder" asp-action="Index">
+                                    <i class="fas fa-clipboard-list"></i> QUẢN LÝ ĐƠN HÀNG
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link text-dark fw-bold mx-2" asp-controller="StaffOrder" asp-action="Create">
+                                    <i class="fas fa-plus-circle"></i> TẠO ĐƠN HÀNG MỚI
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link text-dark fw-bold mx-2" asp-area="Staff" asp-controller="StaffOrder" asp-action="Orders">
+                                    <i class="fas fa-money-bill-wave"></i> QUẢN LÝ THANH TOÁN
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link text-dark fw-bold mx-2" asp-controller="Chef" asp-action="Index">
+                                    <i class="fas fa-utensils"></i> BẾP
+                                </a>
+                            </li>
+                        </ul>
+                    }
+                    @if (!User.IsInRole("NhanVien") && !User.IsInRole("Chef"))
+                    {
+                        <!-- Regular customer navigation -->
+                        <ul class="navbar-nav mx-auto">
+                            <li class="nav-item">
+                                <a class="nav-link text-dark fw-bold mx-2" asp-area="" asp-controller="Home" asp-action="Index">TRANG CHỦ</a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link text-dark fw-bold mx-2" asp-area="" asp-controller="Menu" asp-action="Index">THỰC ĐƠN</a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link text-dark fw-bold mx-2" asp-area="" asp-controller="Home" asp-action="Promotion">KHUYẾN MÃI</a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link text-dark fw-bold mx-2" asp-area="" asp-controller="Reservation" asp-action="Index">ĐẶT BÀN</a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link text-dark fw-bold mx-2" asp-area="" asp-controller="Order" asp-action="MyOrders">ĐƠN HÀNG CỦA TÔI</a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link text-dark fw-bold mx-2" asp-area="" asp-controller="Home" asp-action="About">GIỚI THIỆU</a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link text-dark fw-bold mx-2" asp-area="" asp-controller="Home" asp-action="Contact">LIÊN HỆ</a>
+                            </li>
+                        </ul>
+                    }
+                    
+                    <!-- Keep the cart and login partial -->
+                    <div class="d-flex align-items-center">
+                        <!-- Only show cart for non-staff users -->
+                        @if (!User.IsInRole("NhanVien") && !User.IsInRole("Chef"))
+                        {
+                            <a class="nav-link position-relative me-3" asp-area="" asp-controller="Cart" asp-action="Index">
+                                <i class="fas fa-shopping-cart fa-lg"></i>
+                                <span id="cartItemCount" class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger">
+                                    @await Component.InvokeAsync("CartSummary")
+                                </span>
+                            </a>
+                        }
+                        
+                        <!-- Đăng nhập/Đăng ký -->
+                        <partial name="_LoginPartial" />
+                    </div>
+                </div>
+            </div>
+        </nav>
+    </header>
+    
+    <main role="main" class="flex-grow-1">
+        <div class="container mt-4">
+            <partial name="_Notifications" />
+            @RenderBody()
+        </div>
+    </main>
+
+    <footer class="mt-auto">
+        <div class="container">
+            <!-- Footer CTA -->
+            <div class="footer-cta">
+                <div>
+                    <h4>Thưởng thức ngay hôm nay!</h4>
+                    <p>Đặt hàng online hoặc ghé thăm cửa hàng của chúng tôi để trải nghiệm hương vị đặc biệt.</p>
+                </div>
+                <div>
+                    <a href="@Url.Action("Index", "Menu")" class="btn">Đặt hàng ngay</a>
+                </div>
+            </div>
+
+            <div class="row">
+                <!-- About -->
+                <div class="col-lg-4 mb-4 mb-lg-0">
+                    <h5>QUÁN VỊT LỘN</h5>
+                    <p>Chuyên các món ăn từ vịt lộn được chế biến theo công thức truyền thống kết hợp với phương pháp hiện đại.</p>
+                    <div class="social-icons">
+                        <a href="#"><i class="fab fa-facebook-f"></i></a>
+                        <a href="#"><i class="fab fa-instagram"></i></a>
+                        <a href="#"><i class="fab fa-youtube"></i></a>
+                        <a href="#"><i class="fab fa-tiktok"></i></a>
+                    </div>
+                </div>
+                
+                <!-- Opening Hours -->
+                <div class="col-lg-3 col-md-6 mb-4 mb-md-0">
+                    <h5>GIỜ MỞ CỬA</h5>
+                    <div class="opening-hours">
+                        <p><span>Thứ 2 - Chủ Nhật:</span> <span>18:00 - 1:00</span></p>
+                        <p><span>Các ngày lễ:</span> <span>18:00 - 1:00</span></p>
+                        <p><span>Ngày nghỉ:</span> <span>Mùng 1 và Rằm (Âm Lịch)</span></p>
+                    </div>
+                </div>
+                
+                <!-- Quick Links -->
+                <div class="col-lg-2 col-md-6 mb-4 mb-md-0">
+                    <h5>LIÊN KẾT NHANH</h5>
+                    <ul class="quick-links">
+                        <li><a asp-area="" asp-controller="Home" asp-action="Index">Trang chủ</a></li>
+                        <li><a asp-area="" asp-controller="Menu" asp-action="Index">Thực đơn</a></li>
+                        <li><a asp-area="" asp-controller="Home" asp-action="About">Giới thiệu</a></li>
+                        <li><a asp-area="" asp-controller="Home" asp-action="Contact">Liên hệ</a></li>
+                        <li><a asp-area="" asp-controller="Cart" asp-action="Index">Giỏ hàng</a></li>
+                    </ul>
+                </div>
+                
+                <!-- Contact -->
+                <div class="col-lg-3">
+                    <h5>LIÊN HỆ</h5>
+                    <div class="contact-info">
+                        <p><i class="fas fa-map-marker-alt"></i> 354, đường Lê Văn Thọ, phường 11, quận Gò Vấp, TP. HCM</p>
+                        <p><i class="fas fa-phone-alt"></i> 0379665639</p>
+                        <p><i class="fas fa-envelope"></i> vitlonhien@gmail.com</p>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Copyright -->
+            <div class="copyright">
+                <div class="footer-bottom">
+                    <div>© @DateTime.Now.Year - Quán Vịt Lộn - Tất cả các quyền được bảo lưu.</div>
+                    <div class="footer-links">
+                        <a href="#">Chính sách bảo mật</a>
+                        <a href="#">Điều khoản sử dụng</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <script src="~/lib/jquery/dist/jquery.min.js"></script>
+    <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="~/js/site.js" asp-append-version="true"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.all.min.js"></script>
+    @await RenderSectionAsync("Scripts", required: false)
+</body>
+</html>

@@ -1,0 +1,67 @@
+@model QuanVitLonManager.Models.MenuItem
+
+@{
+    ViewData["Title"] = Model.Name;
+}
+
+<div class="container">
+    <div class="row">
+        <div class="col-md-6">
+            @if (!string.IsNullOrEmpty(Model.ImageUrl))
+            {
+                <img src="@Model.ImageUrl" class="img-fluid rounded" alt="@Model.Name">
+            }
+            else
+            {
+                <div class="bg-light rounded d-flex align-items-center justify-content-center" style="height: 400px;">
+                    <span class="text-muted">No image available</span>
+                </div>
+            }
+        </div>
+        <div class="col-md-6">
+            <h1 class="mb-3">@Model.Name</h1>
+            <p class="lead mb-4">@Model.Description</p>
+            <div class="mb-4">
+                <h3 class="text-primary">@Model.Price.ToString("C")</h3>
+                <p class="text-muted">Category: @Model.Category?.Name</p>
+            </div>
+            <form asp-controller="Cart" asp-action="AddToCart" method="post" class="mb-4">
+                <input type="hidden" name="menuItemId" value="@Model.Id" />
+                <div class="input-group mb-3" style="max-width: 200px;">
+                    <label class="input-group-text" for="quantity">Quantity</label>
+                    <input type="number" class="form-control" id="quantity" name="quantity" value="1" min="1">
+                </div>
+                <button type="submit" class="btn btn-primary btn-lg">Add to Cart</button>
+                <a href="@Url.Action("Menu")" class="btn btn-outline-secondary btn-lg">Back to Menu</a>
+            </form>
+
+            @if (!string.IsNullOrEmpty(Model.Ingredients))
+            {
+                <div class="mb-4">
+                    <h4>Ingredients</h4>
+                    <p>@Model.Ingredients</p>
+                </div>
+            }
+
+            @if (!string.IsNullOrEmpty(Model.PreparationInstructions))
+            {
+                <div class="mb-4">
+                    <h4>Preparation Instructions</h4>
+                    <p>@Model.PreparationInstructions</p>
+                </div>
+            }
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        $(document).ready(function() {
+            $('.add-to-cart').on('click', function() {
+                var itemId = $(this).data('item-id');
+                // TODO: Implement cart functionality
+                alert('Item added to cart!');
+            });
+        });
+    </script>
+} 

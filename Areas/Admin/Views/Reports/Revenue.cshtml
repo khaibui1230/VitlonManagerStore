@@ -1,0 +1,292 @@
+@model RevenueReportViewModel
+@{
+    ViewData["Title"] = "Báo cáo doanh thu";
+    Layout = "_AdminLayout";
+}
+
+<div class="container-fluid px-4">
+    <h1 class="mt-4">@ViewData["Title"]</h1>
+    <ol class="breadcrumb mb-4">
+        <li class="breadcrumb-item"><a href="@Url.Action("Index", "Dashboard", new { area = "Admin" })">Dashboard</a></li>
+        <li class="breadcrumb-item"><a href="@Url.Action("Index", "Reports", new { area = "Admin" })">Báo cáo</a></li>
+        <li class="breadcrumb-item active">Doanh thu</li>
+    </ol>
+    
+    <!-- Filter Form -->
+    <div class="card mb-4">
+        <div class="card-body">
+            <form method="get" class="row g-3 align-items-end">
+                <div class="col-12 col-sm-6 col-md-4">
+                    <label class="form-label">Từ ngày</label>
+                    <input type="date" name="startDate" class="form-control" value="@Model.StartDate.ToString("yyyy-MM-dd")" />
+                </div>
+                <div class="col-12 col-sm-6 col-md-4">
+                    <label class="form-label">Đến ngày</label>
+                    <input type="date" name="endDate" class="form-control" value="@Model.EndDate.ToString("yyyy-MM-dd")" />
+                </div>
+                <div class="col-12 col-md-4">
+                    <button type="submit" class="btn btn-primary w-100">Lọc báo cáo</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Summary Cards -->
+    <div class="row mb-4">
+        <div class="col-12 col-sm-6 col-xl-3 mb-4">
+            <div class="card border-left-primary h-100">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">
+                                Tổng doanh thu
+                            </div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">@Model.TotalRevenue.ToString("N0")đ</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-dollar-sign fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-12 col-sm-6 col-xl-3 mb-4">
+            <div class="card border-left-success h-100">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-success text-uppercase mb-1">
+                                Số đơn hàng
+                            </div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">@Model.TotalOrders</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-shopping-cart fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-12 col-sm-6 col-xl-3 mb-4">
+            <div class="card border-left-info h-100">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-info text-uppercase mb-1">
+                                Trung bình/đơn
+                            </div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">
+                                @(Model.TotalOrders > 0 ? (Model.TotalRevenue / Model.TotalOrders).ToString("N0") : "0")đ
+                            </div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-calculator fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Charts Row -->
+    <div class="row mb-4">
+        <!-- Daily Revenue Chart -->
+        <div class="col-12 col-lg-8 mb-4">
+            <div class="card h-100">
+                <div class="card-header">
+                    <h6 class="m-0 font-weight-bold text-primary">Doanh thu theo ngày</h6>
+                </div>
+                <div class="card-body">
+                    <div style="position: relative; height: 400px;">
+                        <canvas id="dailyRevenueChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <!-- Category Revenue Chart -->
+        <div class="col-12 col-lg-4 mb-4">
+            <div class="card h-100">
+                <div class="card-header">
+                    <h6 class="m-0 font-weight-bold text-primary">Doanh thu theo danh mục</h6>
+                </div>
+                <div class="card-body">
+                    <div style="position: relative; height: 400px;">
+                        <canvas id="categoryRevenueChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Daily Revenue Table -->
+    <div class="card mb-4">
+        <div class="card-header">
+            <h6 class="m-0 font-weight-bold text-primary">Chi tiết doanh thu theo ngày</h6>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-bordered" width="100%" cellspacing="0">
+                    <thead>
+                        <tr>
+                            <th>Ngày</th>
+                            <th>Số đơn</th>
+                            <th>Doanh thu</th>
+                            <th>Trung bình/đơn</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var daily in Model.DailyRevenue.OrderByDescending(x => x.Date))
+                        {
+                            <tr>
+                                <td>@daily.Date.ToString("dd/MM/yyyy")</td>
+                                <td>@daily.OrderCount</td>
+                                <td>@daily.Revenue.ToString("N0")đ</td>
+                                <td>@((daily.OrderCount > 0 ? daily.Revenue / daily.OrderCount : 0).ToString("N0"))đ</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Styles {
+    <style>
+        .border-left-primary {
+            border-left: 0.25rem solid #4e73df !important;
+        }
+        .border-left-success {
+            border-left: 0.25rem solid #1cc88a !important;
+        }
+        .border-left-info {
+            border-left: 0.25rem solid #36b9cc !important;
+        }
+        .text-gray-300 {
+            color: #dddfeb !important;
+        }
+        .text-gray-800 {
+            color: #5a5c69 !important;
+        }
+        .font-weight-bold {
+            font-weight: 700 !important;
+        }
+        
+        @@media screen and (max-width: 576px) {
+            .card-body {
+                padding: 1rem;
+            }
+            .h5 {
+                font-size: 1rem;
+            }
+            .text-xs {
+                font-size: 0.7rem;
+            }
+            .fa-2x {
+                font-size: 1.5em;
+            }
+            .table {
+                font-size: 0.875rem;
+            }
+        }
+    </style>
+}
+
+@section Scripts {
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+        // Daily Revenue Chart
+        var dailyRevenueCtx = document.getElementById('dailyRevenueChart').getContext('2d');
+        new Chart(dailyRevenueCtx, {
+            type: 'bar',
+            data: {
+                labels: @Html.Raw(Json.Serialize(Model.DailyRevenue.OrderBy(x => x.Date).Select(x => x.Date.ToString("dd/MM")))),
+                datasets: [{
+                    label: 'Doanh thu',
+                    data: @Html.Raw(Json.Serialize(Model.DailyRevenue.OrderBy(x => x.Date).Select(x => x.Revenue))),
+                    backgroundColor: 'rgba(78, 115, 223, 0.5)',
+                    borderColor: 'rgba(78, 115, 223, 1)',
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        display: false
+                    },
+                    title: {
+                        display: false
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        ticks: {
+                            callback: function(value) {
+                                return value.toLocaleString('vi-VN') + 'đ';
+                            }
+                        }
+                    }
+                },
+                tooltips: {
+                    callbacks: {
+                        label: function(context) {
+                            return context.raw.toLocaleString('vi-VN') + 'đ';
+                        }
+                    }
+                }
+            }
+        });
+
+        // Category Revenue Chart
+        var categoryRevenueCtx = document.getElementById('categoryRevenueChart').getContext('2d');
+        new Chart(categoryRevenueCtx, {
+            type: 'doughnut',
+            data: {
+                labels: @Html.Raw(Json.Serialize(Model.CategoryRevenue.Select(x => x.CategoryName))),
+                datasets: [{
+                    data: @Html.Raw(Json.Serialize(Model.CategoryRevenue.Select(x => x.Revenue))),
+                    backgroundColor: [
+                        'rgba(78, 115, 223, 0.5)',
+                        'rgba(28, 200, 138, 0.5)',
+                        'rgba(54, 185, 204, 0.5)',
+                        'rgba(246, 194, 62, 0.5)',
+                        'rgba(231, 74, 59, 0.5)'
+                    ],
+                    borderColor: [
+                        'rgba(78, 115, 223, 1)',
+                        'rgba(28, 200, 138, 1)',
+                        'rgba(54, 185, 204, 1)',
+                        'rgba(246, 194, 62, 1)',
+                        'rgba(231, 74, 59, 1)'
+                    ],
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'bottom',
+                        labels: {
+                            boxWidth: 12,
+                            padding: 10
+                        }
+                    }
+                },
+                tooltips: {
+                    callbacks: {
+                        label: function(context) {
+                            var label = context.label || '';
+                            var value = context.raw || 0;
+                            return label + ': ' + value.toLocaleString('vi-VN') + 'đ';
+                        }
+                    }
+                }
+            }
+        });
+    </script>
+} 

@@ -1,0 +1,185 @@
+@model QuanVitLonManager.ViewModels.AdminInfoViewModel
+@{
+    ViewData["Title"] = "Thông tin quản trị";
+}
+
+<div class="container mt-5">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            @if (TempData["Success"] != null)
+            {
+                <div class="alert alert-success alert-dismissible fade show mb-4" role="alert">
+                    <i class="fas fa-check-circle me-2"></i>@TempData["Success"]
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+            }
+            
+            @if (TempData["Error"] != null)
+            {
+                <div class="alert alert-danger alert-dismissible fade show mb-4" role="alert">
+                    <i class="fas fa-exclamation-circle me-2"></i>@TempData["Error"]
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+            }
+            
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <h3 class="card-title mb-0">
+                        <i class="fas fa-user-shield me-2"></i>Thông tin quản trị
+                    </h3>
+                </div>
+                <div class="card-body">
+                    <div class="mb-4">
+                        <p class="mb-1 fs-5"><strong>Email:</strong> @Model.UserEmail</p>
+                        <p class="mb-1 fs-5">
+                            <strong>Trạng thái quản trị:</strong>
+                            @if (Model.IsAdmin)
+                            {
+                                <span class="badge bg-success">Có quyền quản trị</span>
+                            }
+                            else
+                            {
+                                <span class="badge bg-danger">Không có quyền quản trị</span>
+                            }
+                        </p>
+                        <p class="mb-1 fs-5">
+                            <strong>Các quyền hiện tại:</strong>
+                            @if (Model.Roles != null && Model.Roles.Any())
+                            {
+                                @foreach (var role in Model.Roles)
+                                {
+                                    <span class="badge bg-info me-1">@role</span>
+                                }
+                            }
+                            else
+                            {
+                                <span class="text-muted">Không có quyền nào</span>
+                            }
+                        </p>
+                    </div>
+
+                    <div class="alert @(Model.IsAdmin ? "alert-success" : "alert-warning")">
+                        <i class="fas @(Model.IsAdmin ? "fa-check-circle" : "fa-exclamation-circle") me-2"></i>
+                        @Model.Message
+                    </div>
+
+                    <div class="d-flex mt-4">
+                        @if (!Model.IsAdmin)
+                        {
+                            <a asp-controller="AdminTools" asp-action="GrantAdminRole" class="btn btn-primary me-2">
+                                <i class="fas fa-key me-2"></i>Cấp quyền quản trị
+                            </a>
+                        }
+                        <a asp-controller="Home" asp-action="Index" class="btn btn-outline-secondary me-2">
+                            <i class="fas fa-home me-2"></i>Trang chủ
+                        </a>
+                        @if (Model.IsAdmin)
+                        {
+                            <a asp-area="Admin" asp-controller="Dashboard" asp-action="Index" class="btn btn-success">
+                                <i class="fas fa-tachometer-alt me-2"></i>Truy cập Dashboard
+                            </a>
+                        }
+                    </div>
+                </div>
+            </div>
+
+            @if (Model.IsAdmin)
+            {
+                <div class="card mt-4">
+                    <div class="card-header bg-warning text-white">
+                        <h5 class="mb-0">Quản lý vai trò nhân viên</h5>
+                    </div>
+                    <div class="card-body">
+                        <p class="mb-3">Sử dụng các nút bên dưới để thêm hoặc xóa vai trò nhân viên cho tài khoản của bạn:</p>
+                        
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <div class="card h-100">
+                                    <div class="card-body text-center">
+                                        <h5 class="card-title"><i class="fas fa-user-tag me-2"></i>Nhân viên</h5>
+                                        <p class="card-text">Quyền truy cập vào chức năng quản lý đơn hàng và phục vụ khách hàng.</p>
+                                        
+                                        @{
+                                            bool isStaff = Model.Roles.Contains("NhanVien");
+                                        }
+                                        
+                                        <form asp-controller="AdminTools" asp-action="ToggleStaffRole" method="post">
+                                            <input type="hidden" name="role" value="NhanVien" />
+                                            <button type="submit" class="btn @(isStaff ? "btn-danger" : "btn-success")">
+                                                @if (isStaff)
+                                                {
+                                                    <i class="fas fa-user-minus me-2"></i>
+                                                    <span>Xóa vai trò</span>
+                                                }
+                                                else
+                                                {
+                                                    <i class="fas fa-user-plus me-2"></i>
+                                                    <span>Thêm vai trò</span>
+                                                }
+                                            </button>
+                                        </form>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="col-md-6 mb-3">
+                                <div class="card h-100">
+                                    <div class="card-body text-center">
+                                        <h5 class="card-title"><i class="fas fa-utensils me-2"></i>Đầu bếp</h5>
+                                        <p class="card-text">Quyền truy cập vào bếp để quản lý và chuẩn bị các món ăn đã đặt.</p>
+                                        
+                                        @{
+                                            bool isChef = Model.Roles.Contains("Chef");
+                                        }
+                                        
+                                        <form asp-controller="AdminTools" asp-action="ToggleStaffRole" method="post">
+                                            <input type="hidden" name="role" value="Chef" />
+                                            <button type="submit" class="btn @(isChef ? "btn-danger" : "btn-success")">
+                                                @if (isChef)
+                                                {
+                                                    <i class="fas fa-user-minus me-2"></i>
+                                                    <span>Xóa vai trò</span>
+                                                }
+                                                else
+                                                {
+                                                    <i class="fas fa-user-plus me-2"></i>
+                                                    <span>Thêm vai trò</span>
+                                                }
+                                            </button>
+                                        </form>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            }
+
+            <div class="card mt-4">
+                <div class="card-header bg-info text-white">
+                    <h5 class="mb-0">Hướng dẫn sử dụng</h5>
+                </div>
+                <div class="card-body">
+                    <ul class="list-group list-group-flush">
+                        <li class="list-group-item">
+                            <i class="fas fa-info-circle me-2 text-primary"></i>
+                            <strong>Kiểm tra quyền:</strong> Sử dụng trang này để xem bạn có quyền quản trị hay không.
+                        </li>
+                        <li class="list-group-item">
+                            <i class="fas fa-key me-2 text-warning"></i>
+                            <strong>Cấp quyền:</strong> Nhấn nút "Cấp quyền quản trị" nếu bạn cần quyền truy cập vào trang quản trị.
+                        </li>
+                        <li class="list-group-item">
+                            <i class="fas fa-user-tag me-2 text-success"></i>
+                            <strong>Vai trò:</strong> Quản lý các vai trò để truy cập vào các tính năng khác nhau của hệ thống.
+                        </li>
+                        <li class="list-group-item">
+                            <i class="fas fa-exclamation-triangle me-2 text-danger"></i>
+                            <strong>Gặp vấn đề?</strong> Liên hệ quản trị viên nếu bạn không thể tự cấp quyền hoặc gặp lỗi truy cập.
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</div> 

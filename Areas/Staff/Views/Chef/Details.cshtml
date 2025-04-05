@@ -1,0 +1,181 @@
+@model QuanVitLonManager.Models.DishOrder
+@using QuanVitLonManager.Models
+@{
+    ViewData["Title"] = "Chi tiết món ăn";
+    Layout = "_Layout";
+}
+
+<div class="container-fluid mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1 class="display-5 mb-0">@ViewData["Title"]</h1>
+        <div>
+            <a asp-action="Index" class="btn btn-outline-secondary">
+                <i class="fas fa-arrow-left"></i> Quay lại danh sách
+            </a>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-md-8">
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-utensils me-2"></i>Thông tin món ăn
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row mb-3">
+                        <div class="col-md-3 fw-bold">Tên món:</div>
+                        <div class="col-md-9">@Model.Name</div>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-md-3 fw-bold">Ghi chú:</div>
+                        <div class="col-md-9">@(string.IsNullOrEmpty(Model.Notes) ? "Không có" : Model.Notes)</div>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-md-3 fw-bold">Số lượng:</div>
+                        <div class="col-md-9">@Model.Quantity</div>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-md-3 fw-bold">Giá:</div>
+                        <div class="col-md-9">@Model.Price.ToString("N0") đ</div>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-md-3 fw-bold">Tổng tiền:</div>
+                        <div class="col-md-9">@Model.TotalPrice.ToString("N0") đ</div>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-md-3 fw-bold">Thời gian đặt:</div>
+                        <div class="col-md-9">@Model.OrderTime.ToString("dd/MM/yyyy HH:mm:ss")</div>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-md-3 fw-bold">Hình thức:</div>
+                        <div class="col-md-9">
+                            @(Model.OrderType == OrderType.DineIn ? "Ăn tại quán" : "Mang về")
+                        </div>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-md-3 fw-bold">Trạng thái:</div>
+                        <div class="col-md-9">
+                            @{
+                                string statusClass = "";
+                                string statusName = "";
+                                
+                                switch (Model.Status)
+                                {
+                                    case DishOrderStatus.Pending:
+                                        statusClass = "bg-secondary";
+                                        statusName = "Đang chờ";
+                                        break;
+                                    case DishOrderStatus.Preparing:
+                                        statusClass = "bg-warning";
+                                        statusName = "Đang chuẩn bị";
+                                        break;
+                                    case DishOrderStatus.Completed:
+                                        statusClass = "bg-success";
+                                        statusName = "Hoàn thành";
+                                        break;
+                                    case DishOrderStatus.Cancelled:
+                                        statusClass = "bg-danger";
+                                        statusName = "Đã hủy";
+                                        break;
+                                }
+                            }
+                            <span class="badge @statusClass">@statusName</span>
+                        </div>
+                    </div>
+                    
+                    <hr class="my-4" />
+                    
+                    <div class="d-flex justify-content-end">
+                        <form asp-action="UpdateStatus" method="post">
+                            @Html.AntiForgeryToken()
+                            <input type="hidden" name="id" value="@Model.Id" />
+                            
+                            @if (Model.Status == DishOrderStatus.Pending)
+                            {
+                                <button type="submit" name="status" value="Preparing" class="btn btn-warning me-2">
+                                    <i class="fas fa-fire"></i> Bắt đầu làm
+                                </button>
+                                <button type="submit" name="status" value="Cancelled" class="btn btn-outline-danger">
+                                    <i class="fas fa-times"></i> Hủy món
+                                </button>
+                            }
+                            else if (Model.Status == DishOrderStatus.Preparing)
+                            {
+                                <button type="submit" name="status" value="Completed" class="btn btn-success me-2">
+                                    <i class="fas fa-check"></i> Hoàn thành
+                                </button>
+                                <button type="submit" name="status" value="Cancelled" class="btn btn-outline-danger">
+                                    <i class="fas fa-times"></i> Hủy món
+                                </button>
+                            }
+                            else if (Model.Status == DishOrderStatus.Completed)
+                            {
+                                <button type="submit" name="status" value="Preparing" class="btn btn-warning">
+                                    <i class="fas fa-undo"></i> Đánh dấu đang làm
+                                </button>
+                            }
+                            else if (Model.Status == DishOrderStatus.Cancelled)
+                            {
+                                <button type="submit" name="status" value="Pending" class="btn btn-primary">
+                                    <i class="fas fa-undo"></i> Khôi phục
+                                </button>
+                            }
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-4">
+            @if (Model.OrderId != null)
+            {
+                <div class="card border-0 shadow-sm">
+                    <div class="card-header bg-info text-white">
+                        <h5 class="card-title mb-0">
+                            <i class="fas fa-shopping-cart me-2"></i>Thông tin đơn hàng
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <p class="mb-2">
+                            <span class="fw-bold">Mã đơn hàng:</span> #@Model.OrderId
+                        </p>
+                        <p class="mb-0">
+                            <a asp-action="Details" asp-controller="Order" asp-area="Staff" asp-route-id="@Model.OrderId" class="btn btn-sm btn-outline-primary mt-3">
+                                <i class="fas fa-eye"></i> Xem chi tiết đơn hàng
+                            </a>
+                        </p>
+                    </div>
+                </div>
+            }
+            
+            @if (Model.MenuItem != null)
+            {
+                <div class="card border-0 shadow-sm mt-4">
+                    <div class="card-header bg-success text-white">
+                        <h5 class="card-title mb-0">
+                            <i class="fas fa-info-circle me-2"></i>Thông tin menu
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <p class="mb-2">
+                            <span class="fw-bold">Tên món (Menu):</span> @Model.MenuItem.Name
+                        </p>
+                        <p class="mb-2">
+                            <span class="fw-bold">Danh mục:</span> @Model.MenuItem.Category?.Name
+                        </p>
+                        <p class="mb-2">
+                            <span class="fw-bold">Giá gốc:</span> @Model.MenuItem.Price.ToString("N0") đ
+                        </p>
+                        <p class="mb-0">
+                            <a asp-action="Details" asp-controller="MenuManagement" asp-area="Admin" asp-route-id="@Model.MenuItem.Id" class="btn btn-sm btn-outline-primary mt-3">
+                                <i class="fas fa-eye"></i> Xem chi tiết trong menu
+                            </a>
+                        </p>
+                    </div>
+                </div>
+            }
+        </div>
+    </div>
+</div> 

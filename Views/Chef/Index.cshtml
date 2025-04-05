@@ -1,0 +1,405 @@
+@inject QuanVitLonManager.Data.ApplicationDbContext _context
+@model QuanVitLonManager.Models.ChefDashboardViewModel
+@using Microsoft.EntityFrameworkCore
+@using QuanVitLonManager.Models
+
+@{
+    ViewData["Title"] = ViewBag.IsChef ? "Quản lý món ăn" : "Bếp - Quản lý món ăn";
+    Layout = "_Layout";
+}
+
+<div class="container-fluid">
+    <div class="row mb-4">
+        <div class="col-12">
+            <h1 class="display-4 text-center">@(ViewBag.IsChef ? "Quản lý món ăn" : "Bếp - Quản lý món ăn")</h1>
+            <p class="text-center text-muted">Cập nhật lần cuối: @Model.LastRefreshTime.ToString("HH:mm:ss dd/MM/yyyy")</p>
+        </div>
+    </div>
+
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="btn-group" role="group">
+                <a href="@Url.Action("Index", new { filterStatus = "pending" })" 
+                   class="btn @(Model.FilterStatus == "pending" ? "btn-primary" : "btn-outline-primary")">
+                    <i class="fas fa-hourglass-half me-1"></i> @(ViewBag.IsChef ? "MÓN CẦN LÀM" : "Đang chờ & Đang làm")
+                </a>
+                <a href="@Url.Action("Index", new { filterStatus = "completed" })" 
+                   class="btn @(Model.FilterStatus == "completed" ? "btn-primary" : "btn-outline-primary")">
+                    <i class="fas fa-check-circle me-1"></i> @(ViewBag.IsChef ? "ĐÃ HOÀN THÀNH" : "Đã hoàn thành")
+                </a>
+                <a href="@Url.Action("Index", new { filterStatus = "all" })" 
+                   class="btn @(Model.FilterStatus == "all" ? "btn-primary" : "btn-outline-primary")">
+                    <i class="fas fa-list me-1"></i> @(ViewBag.IsChef ? "TẤT CẢ MÓN" : "Tất cả")
+                </a>
+            </div>
+        </div>
+    </div>
+
+    @if (!Model.DishItems.Any())
+    {
+        <div class="alert alert-info">
+            <h4 class="alert-heading"><i class="fas fa-info-circle me-2"></i>Không có món ăn nào!</h4>
+            <p class="mb-0">Hiện không có món ăn nào cần chuẩn bị theo bộ lọc hiện tại.</p>
+        </div>
+    }
+    else 
+    {
+        <div class="row">
+            <div class="col-md-@(ViewBag.IsChef ? "7" : "8")">
+                @{
+                    // Nhóm các món theo tên để tạo thành các nhóm lớn
+                    var dishGroups = Model.DishItems
+                        .OrderByDescending(i => i.Status == "pending")
+                        .ThenBy(i => i.DishName)
+                        .GroupBy(i => i.DishName);
+                }
+
+                @foreach (var dishGroup in dishGroups)
+                {
+                    <div class="card mb-4 shadow">
+                        <div class="card-header bg-light">
+                            <h4 class="mb-0"><i class="fas fa-utensils me-2"></i>@dishGroup.Key</h4>
+                        </div>
+                        <div class="card-body p-0">
+                            @foreach (var item in dishGroup.OrderBy(i => i.Notes.Any() ? i.Notes.First() : ""))
+                            {
+                                <div class="border-bottom p-3 @(item.Status == "completed" ? "bg-light" : "")">
+                                    <div class="d-flex justify-content-between align-items-center mb-2">
+                                        <h5 class="mb-0">
+                                            @if (item.Notes != null && item.Notes.Any())
+                                            {
+                                                <span class="badge bg-info me-2">Yêu cầu đặc biệt</span>
+                                                <span>@string.Join(", ", item.Notes)</span>
+                                            }
+                                            else
+                                            {
+                                                <span>Chuẩn</span>
+                                            }
+                                        </h5>
+                                        <span class="badge @(item.Status == "pending" ? "bg-warning" : item.Status == "completed" ? "bg-success" : "bg-primary")">
+                                            @(item.Status == "pending" ? "Đang chờ" : item.Status == "completed" ? "Hoàn thành" : "Đang làm")
+                                        </span>
+                                    </div>
+                                    
+                                    <div class="row">
+                                        <div class="col-md-4">
+                                            <div class="mb-2">
+                                                <strong>Số lượng:</strong>
+                                                <span class="fs-5 ms-2">@item.TotalQuantity</span>
+                                            </div>
+                                            
+                                            <div class="mb-2">
+                                                <strong>Thời gian đặt:</strong>
+                                                <div>@item.OrderTime.ToString("HH:mm:ss dd/MM/yyyy")</div>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-4">
+                                            @if (item.OrderIds != null && item.OrderIds.Any())
+                                            {
+                                                <div>
+                                                    <strong>Đơn hàng:</strong>
+                                                    <div>
+                                                        @foreach (var orderId in item.OrderIds)
+                                                        {
+                                                            <div class="mb-1">
+                                                                <span class="badge bg-info me-1">Đơn #@orderId</span>
+                                                            </div>
+                                                        }
+                                                    </div>
+                                                </div>
+                                            }
+                                        </div>
+                                        <div class="col-md-4 text-end">
+                                            @if (item.Status == "pending")
+                                            {
+                                                <form asp-action="UpdateDishNoteStatus" method="post" class="d-inline dish-status-form">
+                                                    <input type="hidden" name="menuItemId" value="@item.DishId" />
+                                                    <input type="hidden" name="notes" value="@(item.Notes.Any() ? item.Notes.First() : "")" />
+                                                    <input type="hidden" name="status" value="Preparing" />
+                                                    <button type="submit" class="btn btn-primary me-1">
+                                                        <i class="fas fa-hourglass-start me-1"></i> Bắt đầu làm
+                                                    </button>
+                                                </form>
+                                                <form asp-action="UpdateDishNoteStatus" method="post" class="d-inline dish-status-form">
+                                                    <input type="hidden" name="menuItemId" value="@item.DishId" />
+                                                    <input type="hidden" name="notes" value="@(item.Notes.Any() ? item.Notes.First() : "")" />
+                                                    <input type="hidden" name="status" value="Completed" />
+                                                    <button type="submit" class="btn btn-success complete-btn">
+                                                        <i class="fas fa-check-circle me-1"></i> Hoàn thành
+                                                    </button>
+                                                </form>
+                                            }
+                                            else
+                                            {
+                                                <form asp-action="UpdateDishNoteStatus" method="post" class="d-inline dish-status-form">
+                                                    <input type="hidden" name="menuItemId" value="@item.DishId" />
+                                                    <input type="hidden" name="notes" value="@(item.Notes.Any() ? item.Notes.First() : "")" />
+                                                    <input type="hidden" name="status" value="Pending" />
+                                                    <button type="submit" class="btn btn-warning btn-sm">
+                                                        <i class="fas fa-undo me-1"></i> Chuyển về chờ
+                                                    </button>
+                                                </form>
+                                            }
+                                        </div>
+                                    </div>
+                                </div>
+                            }
+                        </div>
+                        <div class="card-footer bg-light d-flex justify-content-between align-items-center">
+                            <div>
+                                <strong>Tổng số: </strong>
+                                <span class="badge bg-secondary me-2">@dishGroup.Sum(i => i.TotalQuantity)</span>
+                                <strong>Số loại: </strong>
+                                <span class="badge bg-secondary">@dishGroup.Count()</span>
+                            </div>
+                            @if (dishGroup.All(i => i.Status == "pending"))
+                            {
+                                <form asp-action="UpdateAllStatus" method="post" class="d-inline">
+                                    <input type="hidden" name="dishId" value="@dishGroup.First().DishId" />
+                                    <input type="hidden" name="status" value="Completed" />
+                                    <button type="submit" class="btn btn-primary">
+                                        <i class="fas fa-check-double me-1"></i> Hoàn thành tất cả
+                                    </button>
+                                </form>
+                            }
+                        </div>
+                    </div>
+                }
+            </div>
+            
+            <div class="col-md-@(ViewBag.IsChef ? "5" : "4")">
+                <div class="card border-0 shadow-sm sticky-top" style="top: 10px;">
+                    <div class="card-header bg-primary text-white">
+                        <h5 class="card-title mb-0">
+                            <i class="fas fa-chart-pie me-2"></i>@(ViewBag.IsChef ? "THỐNG KÊ" : "Tổng quan")
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row g-3">
+                            <div class="col-6">
+                                <div class="card bg-light">
+                                    <div class="card-body text-center">
+                                        <h6 class="card-title text-primary">Đang chờ</h6>
+                                        <h2 class="mb-0">@Model.DishItems.Count(m => m.Status == "pending")</h2>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-6">
+                                <div class="card bg-light">
+                                    <div class="card-body text-center">
+                                        <h6 class="card-title text-success">Hoàn thành</h6>
+                                        <h2 class="mb-0">@Model.DishItems.Count(m => m.Status == "completed")</h2>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <hr>
+
+                        <div class="card mb-3">
+                            <div class="card-header bg-info text-white">
+                                <h6 class="mb-0">Tổng hợp theo món</h6>
+                            </div>
+                            <div class="card-body p-0">
+                                <ul class="list-group list-group-flush">
+                                    @foreach (var dishGroup in Model.DishItems
+                                        .Where(d => d.Status == "pending")
+                                        .GroupBy(d => d.DishName)
+                                        .OrderByDescending(g => g.Sum(d => d.TotalQuantity)))
+                                    {
+                                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                                            @dishGroup.Key
+                                            <span class="badge bg-primary rounded-pill">@dishGroup.Sum(d => d.TotalQuantity)</span>
+                                        </li>
+                                    }
+                                </ul>
+                            </div>
+                        </div>
+                        
+                        <div class="alert alert-info mt-3">
+                            <h6 class="alert-heading"><i class="fas fa-info-circle me-2"></i>Lưu ý:</h6>
+                            <p class="small mb-0">Các món được nhóm theo tên và ghi chú đặc biệt. Món "Chuẩn" là món không có ghi chú đặc biệt.</p>
+                        </div>
+                    </div>
+                    <div class="card-footer text-center">
+                        <button id="refreshBtn" class="btn btn-outline-primary btn-sm">
+                            <i class="fas fa-sync-alt me-1"></i> Làm mới trang
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+</div>
+
+@section Styles {
+    <style>
+        .card {
+            transition: transform 0.2s;
+        }
+        .card:hover {
+            transform: translateY(-2px);
+        }
+        .badge {
+            font-size: 90%;
+            transition: all 0.3s ease;
+        }
+        .list-group-item-warning {
+            background-color: #fff3cd;
+            border-left: 3px solid #ffc107;
+        }
+        
+        /* Hiệu ứng cho trạng thái hoàn thành */
+        .border-bottom {
+            transition: all 0.3s ease;
+        }
+        .border-bottom.bg-light {
+            background-color: #f8f9fa;
+        }
+        
+        /* Hiệu ứng cho nút */
+        .btn {
+            transition: all 0.2s ease;
+            position: relative;
+            overflow: hidden;
+        }
+        .btn:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .btn:active {
+            transform: translateY(0);
+        }
+        
+        /* Hiệu ứng loading */
+        .btn:disabled {
+            cursor: not-allowed;
+            opacity: 0.7;
+        }
+        
+        .badge.updated {
+            animation: badgeUpdate 0.5s ease;
+        }
+    </style>
+    
+    <style>
+        @* Định nghĩa keyframes riêng để tránh lỗi Razor *@
+        @@keyframes badgeUpdate {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.2); }
+            100% { transform: scale(1); }
+        }
+    </style>
+}
+
+@section Scripts {
+    <script>
+        $(document).ready(function() {
+            // Auto refresh trang mỗi 30 giây
+            var refreshTimeout = setTimeout(function() {
+                location.reload();
+            }, 30000);
+
+            // Xử lý form submission với AJAX
+            $('.dish-status-form').on('submit', function(e) {
+                e.preventDefault();
+                clearTimeout(refreshTimeout); // Dừng auto refresh khi đang xử lý
+
+                var form = $(this);
+                var button = form.find('button[type="submit"]');
+                var originalText = button.html();
+                var isComplete = form.find('input[name="status"]').val() === 'Completed';
+                var card = form.closest('.border-bottom');
+                
+                // Disable button và hiển thị loading
+                button.prop('disabled', true);
+                button.html('<i class="fas fa-spinner fa-spin me-1"></i> Đang xử lý...');
+
+                $.ajax({
+                    url: form.attr('action'),
+                    method: 'POST',
+                    data: form.serialize(),
+                    success: function(response) {
+                        if (response.success) {
+                            // Hiển thị thông báo thành công
+                            Swal.fire({
+                                icon: 'success',
+                                title: 'Thành công!',
+                                text: response.message,
+                                showConfirmButton: false,
+                                timer: 1500
+                            });
+
+                            // Cập nhật giao diện nếu là hoàn thành
+                            if (isComplete) {
+                                card.addClass('bg-light');
+                                card.find('.badge')
+                                    .removeClass('bg-warning bg-primary')
+                                    .addClass('bg-success')
+                                    .text('Hoàn thành');
+                                
+                                // Ẩn các nút trong card này
+                                card.find('.dish-status-form').hide();
+                                
+                                // Cập nhật số liệu thống kê
+                                updateStatistics();
+                            }
+                            
+                            // Reload sau 1.5 giây
+                            setTimeout(function() {
+                                location.reload();
+                            }, 1500);
+                        } else {
+                            // Hiển thị thông báo lỗi
+                            Swal.fire({
+                                icon: 'error',
+                                title: 'Lỗi!',
+                                text: response.message,
+                                confirmButtonText: 'Đóng'
+                            });
+                            
+                            // Khôi phục nút
+                            button.prop('disabled', false);
+                            button.html(originalText);
+                        }
+                    },
+                    error: function(xhr, status, error) {
+                        // Hiển thị thông báo lỗi
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Lỗi!',
+                            text: 'Không thể kết nối đến máy chủ. Vui lòng thử lại sau.',
+                            confirmButtonText: 'Đóng'
+                        });
+                        
+                        // Khôi phục nút
+                        button.prop('disabled', false);
+                        button.html(originalText);
+                        
+                        console.error('Error:', error);
+                    }
+                });
+            });
+
+            // Cập nhật số liệu thống kê
+            function updateStatistics() {
+                var pendingCount = $('.badge:contains("Đang chờ")').length;
+                var completedCount = $('.badge:contains("Hoàn thành")').length;
+                
+                $('.card-body h2').each(function() {
+                    var $stat = $(this);
+                    if ($stat.closest('.card').find('.card-title').text().includes('Đang chờ')) {
+                        $stat.text(pendingCount);
+                    } else if ($stat.closest('.card').find('.card-title').text().includes('Hoàn thành')) {
+                        $stat.text(completedCount);
+                    }
+                });
+            }
+
+            // Nút làm mới trang
+            $('#refreshBtn').on('click', function() {
+                location.reload();
+            });
+        });
+    </script>
+}

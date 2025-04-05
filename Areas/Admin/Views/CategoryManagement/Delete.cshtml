@@ -1,0 +1,144 @@
+@model Category
+@{
+    ViewData["Title"] = "Xóa danh mục";
+    Layout = "_AdminLayout";
+}
+
+<div class="container-fluid px-4">
+    <h1 class="mt-4">Xóa danh mục</h1>
+    <ol class="breadcrumb mb-4">
+        <li class="breadcrumb-item"><a href="@Url.Action("Index", "Dashboard", new { area = "Admin" })">Dashboard</a></li>
+        <li class="breadcrumb-item"><a href="@Url.Action("Index", "CategoryManagement", new { area = "Admin" })">Danh mục</a></li>
+        <li class="breadcrumb-item active">Xóa</li>
+    </ol>
+    
+    <div class="card mb-4">
+        <div class="card-header">
+            <i class="fas fa-trash-alt me-1"></i>
+            Xác nhận xóa danh mục
+        </div>
+        <div class="card-body">
+            @if (ViewBag.HasMenuItems)
+            {
+                <div class="alert alert-danger">
+                    <h5 class="alert-heading">
+                        <i class="fas fa-exclamation-triangle me-1"></i>
+                        Không thể xóa danh mục này!
+                    </h5>
+                    <p>
+                        Danh mục này đang chứa @ViewBag.MenuItemCount món ăn. Để đảm bảo tính toàn vẹn dữ liệu, 
+                        bạn không thể xóa danh mục này. Thay vào đó, bạn có thể đánh dấu nó là không hiển thị.
+                    </p>
+                    <hr>
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <a asp-action="ToggleStatus" asp-route-id="@Model.Id" class="btn btn-warning">
+                                <i class="fas fa-ban me-1"></i> Đánh dấu không hiển thị
+                            </a>
+                        </div>
+                        <div>
+                            <a asp-action="Index" class="btn btn-secondary">
+                                <i class="fas fa-arrow-left me-1"></i> Quay lại danh sách
+                            </a>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="mt-4">
+                    <h5 class="border-bottom pb-2">Món ăn trong danh mục này</h5>
+                    <div class="table-responsive">
+                        <table class="table table-sm table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Tên món</th>
+                                    <th>Giá</th>
+                                    <th>Trạng thái</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var item in ViewBag.MenuItems)
+                                {
+                                    <tr>
+                                        <td>@item.Name</td>
+                                        <td>@item.Price.ToString("N0") đ</td>
+                                        <td>
+                                            @if (item.IsAvailable)
+                                            {
+                                                <span class="badge bg-success">Có sẵn</span>
+                                            }
+                                            else
+                                            {
+                                                <span class="badge bg-danger">Hết hàng</span>
+                                            }
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                    
+                    @if (ViewBag.MenuItemCount > ViewBag.MenuItems.Count)
+                    {
+                        <div class="text-center mt-2">
+                            <small class="text-muted">
+                                Hiển thị @ViewBag.MenuItems.Count trên tổng số @ViewBag.MenuItemCount món ăn
+                            </small>
+                        </div>
+                    }
+                </div>
+            }
+            else
+            {
+                <div class="row">
+                    <div class="col-md-8 mx-auto">
+                        <div class="alert alert-warning">
+                            <h5 class="alert-heading">
+                                <i class="fas fa-exclamation-triangle me-1"></i>
+                                Bạn có chắc chắn muốn xóa danh mục này?
+                            </h5>
+                            <p>Hành động này không thể hoàn tác. Khi xóa, tất cả dữ liệu liên quan đến danh mục này sẽ bị mất.</p>
+                        </div>
+                        
+                        <dl class="row">
+                            <dt class="col-sm-4">Tên danh mục:</dt>
+                            <dd class="col-sm-8">@Model.Name</dd>
+                            
+                            <dt class="col-sm-4">Mô tả:</dt>
+                            <dd class="col-sm-8">@(string.IsNullOrEmpty(Model.Description) ? "Không có mô tả" : Model.Description)</dd>
+                            
+                            <dt class="col-sm-4">Thứ tự hiển thị:</dt>
+                            <dd class="col-sm-8">@Model.DisplayOrder</dd>
+                            
+                            <dt class="col-sm-4">Trạng thái:</dt>
+                            <dd class="col-sm-8">
+                                @if (Model.IsActive)
+                                {
+                                    <span class="badge bg-success">Đang hiển thị</span>
+                                }
+                                else
+                                {
+                                    <span class="badge bg-danger">Ẩn</span>
+                                }
+                            </dd>
+                            
+                            <dt class="col-sm-4">Ngày tạo:</dt>
+                            <dd class="col-sm-8">Không xác định</dd>
+                        </dl>
+                        
+                        <form asp-action="Delete" method="post">
+                            <input type="hidden" asp-for="Id" />
+                            <div class="d-flex justify-content-between mt-4">
+                                <button type="submit" class="btn btn-danger">
+                                    <i class="fas fa-trash-alt me-1"></i> Xác nhận xóa
+                                </button>
+                                <a asp-action="Index" class="btn btn-secondary">
+                                    <i class="fas fa-arrow-left me-1"></i> Quay lại danh sách
+                                </a>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            }
+        </div>
+    </div>
+</div> 

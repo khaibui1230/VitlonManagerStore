@@ -1,0 +1,340 @@
+1. Phân Tích Yêu Cầu & Tính Năng Mở Rộng
+1.1. Yêu Cầu Chức Năng Chính
+Quản lý nhà hàng: Quản lý bàn ăn, khu vực phục vụ, thực đơn, đơn hàng, đặt bàn, đặt món.
+
+Quản lý người dùng: Phân quyền (Admin, Nhân viên, Khách hàng), quản lý đăng ký – đăng nhập, quên mật khẩu.
+
+Báo cáo & Thống kê: Doanh thu, số lượng đơn hàng, món ăn bán chạy, thống kê thời gian cao điểm,...
+
+1.2. Yêu Cầu Chức Năng Mở Rộng
+Đặt bàn theo thời gian thực:
+
+Cho phép khách hàng đặt bàn theo thời gian cụ thể, kiểm tra tình trạng bàn (trống/đã đặt) ngay lập tức.
+
+Cập nhật trạng thái bàn tự động khi có đặt bàn mới hoặc khi bàn được giải phóng.
+
+Gửi thông báo tới nhân viên phục vụ hoặc quản lý khi có đặt bàn mới (có thể dùng SignalR để realtime update).
+
+Đặt món theo thời gian thực:
+
+Cho phép khách hàng đặt món ngay từ dashboard mà không cần đăng nhập.
+
+Khi đặt món, hệ thống yêu cầu khách hàng đăng nhập hoặc đăng ký để xác nhận đơn hàng và thanh toán.
+
+Cập nhật trạng thái đơn hàng theo thời gian thực (ví dụ: đang chuẩn bị, đã hoàn thành) với giao diện live update.
+
+Dashboard công khai:
+
+Trang chủ (Home): Hiển thị thực đơn với hình ảnh, mô tả món ăn, giá.
+
+Tìm kiếm & Lọc: Cho phép khách hàng lọc theo danh mục, giá, đánh giá,...
+
+Chi tiết món: Xem thông tin chi tiết của món ăn, đánh giá từ khách hàng.
+
+Chế độ đặt hàng: Khi khách hàng chọn mua, hệ thống chuyển hướng đến trang đăng nhập hoặc đăng ký. Sau khi đăng nhập, khách hàng có thể:
+
+Lựa chọn bàn (nếu cần đặt chỗ)
+
+Xác nhận đơn hàng, cập nhật giỏ hàng, thanh toán trực tuyến
+
+Giao diện tương tác:
+
+Responsive cho cả mobile, tablet, desktop.
+
+Tích hợp tính năng realtime: cập nhật tự động khi có đơn đặt mới, cập nhật trạng thái đơn hàng qua SignalR.
+
+2. Thiết Kế Kiến Trúc & Mô Hình Hệ Thống
+2.1. Kiến trúc tổng quan
+MVC Framework:
+
+Model: Chứa các đối tượng như User, Table, MenuItem, Order, OrderDetail, Reservation.
+
+View: Sử dụng Razor view engine để tạo giao diện, dashboard công khai và giao diện quản trị.
+
+Controller: Xử lý các yêu cầu từ phía người dùng, gọi đến business logic và trả về view phù hợp.
+
+Các Layer bổ trợ:
+
+Business Layer / Service Layer: Chứa logic nghiệp vụ phức tạp, ví dụ:
+
+Xác thực & phân quyền người dùng.
+
+Quản lý giao dịch đặt bàn, đặt món theo thời gian thực.
+
+Quản lý thông báo realtime.
+
+Data Access Layer (DAL): Sử dụng Entity Framework Core để tương tác với CSDL.
+
+Realtime Communication: Sử dụng SignalR cho các tính năng realtime như cập nhật trạng thái bàn, đơn hàng.
+
+2.2. Phân chia các module chính
+Module Quản Lý Người Dùng:
+
+Đăng ký, đăng nhập, phân quyền.
+
+Quản lý hồ sơ, thông tin đặt hàng.
+
+Module Quản Lý Thực Đơn & Đặt Món:
+
+CRUD cho MenuItems (món ăn, đồ uống).
+
+Public dashboard hiển thị thực đơn không cần đăng nhập.
+
+Chức năng thêm món vào giỏ hàng và đặt món sau khi đăng nhập.
+
+Module Quản Lý Bàn & Đặt Bàn:
+
+Hiển thị trạng thái bàn theo thời gian thực.
+
+Chức năng đặt bàn theo thời gian và cập nhật trạng thái ngay khi có đặt bàn mới.
+
+Module Đơn Hàng & Thanh Toán:
+
+Quản lý đơn hàng: tạo, cập nhật trạng thái, in hóa đơn.
+
+Tích hợp cổng thanh toán trực tuyến nếu cần.
+
+Module Thông Báo Realtime:
+
+Sử dụng SignalR để thông báo cho nhân viên khi có đặt bàn/món mới.
+
+Cập nhật trạng thái đơn hàng theo thời gian thực trên dashboard quản trị.
+
+Module Báo Cáo & Thống Kê:
+
+Báo cáo doanh thu, số lượng đơn hàng theo ngày/tuần/tháng.
+
+Biểu đồ tương tác sử dụng Chart.js hay thư viện tương tự.
+
+3. Thiết Kế Cơ Sở Dữ Liệu
+3.1. Các bảng chính (các bảng mẫu)
+Users:
+
+Các trường: Id, Username, PasswordHash, Email, Role, CreatedDate,...
+
+Tables (Bàn ăn):
+
+Các trường: Id, TableNumber, Area (Khu vực), Status (Trống, Đã đặt, Đang phục vụ), Capacity,...
+
+MenuItems (Thực đơn):
+
+Các trường: Id, Name, Description, Price, ImageUrl, CategoryId,...
+
+Categories:
+
+Phân loại món ăn: Appetizers, Main Course, Desserts, Drinks,...
+
+Orders (Đơn hàng):
+
+Các trường: Id, UserId, TableId (nếu có đặt bàn), OrderDate, TotalAmount, OrderStatus,...
+
+OrderDetails (Chi tiết đơn hàng):
+
+Các trường: Id, OrderId, MenuItemId, Quantity, Price.
+
+Reservations (Đặt bàn):
+
+Các trường: Id, UserId, TableId, ReservationTime, NumberOfGuests, Status,...
+
+3.2. Quan hệ giữa các bảng
+One-to-Many:
+
+Một Order có nhiều OrderDetails.
+
+Một Category có nhiều MenuItems.
+
+One-to-One/One-to-Many:
+
+Một User có thể có nhiều Reservation hoặc Order.
+
+Realtime Update:
+
+Các bảng liên quan đến trạng thái (Tables, Orders, Reservations) cần có cơ chế cập nhật trạng thái tự động.
+
+4. Triển Khai & Phát Triển Các Tính Năng
+4.1. Thiết lập dự án
+Tạo project MVC:
+
+Sử dụng Visual Studio để tạo một dự án ASP.NET Core MVC.
+
+Cài đặt các gói cần thiết như Entity Framework Core, SignalR, Identity, và các thư viện UI (Bootstrap, jQuery).
+
+4.2. Phát triển các tính năng chính
+4.2.1. Giao diện Dashboard công khai
+Trang Home:
+
+Hiển thị toàn bộ thực đơn, chia theo danh mục.
+
+Cho phép khách hàng xem chi tiết món.
+
+Tích hợp chức năng tìm kiếm và lọc theo tiêu chí (giá, danh mục, đánh giá,...)
+
+Giỏ hàng & Đặt món:
+
+Cho phép khách hàng thêm món vào giỏ hàng mà không cần đăng nhập.
+
+Khi tiến hành thanh toán, chuyển hướng sang trang đăng nhập/đăng ký.
+
+4.2.2. Chức năng đặt bàn theo thời gian thực
+Trang Đặt Bàn:
+
+Cho phép khách hàng chọn ngày, giờ, số lượng khách.
+
+Hiển thị tình trạng bàn (trống, đã đặt) dựa trên thời gian.
+
+Sử dụng SignalR để cập nhật trạng thái bàn khi có thay đổi.
+
+4.2.3. Chức năng đặt món và cập nhật trạng thái đơn hàng realtime
+Trang Đặt Món:
+
+Sau khi khách hàng đăng nhập, cho phép họ xác nhận đơn hàng từ giỏ hàng.
+
+Khi đơn hàng được tạo, hệ thống sử dụng SignalR để gửi thông báo cho nhân viên.
+
+Hiển thị trạng thái đơn hàng (đang chuẩn bị, đã giao,...) trên trang cá nhân.
+
+4.2.4. Quản lý và Admin Dashboard
+Trang quản trị:
+
+Hiển thị tổng quan về số lượng đơn hàng, đặt bàn, doanh thu.
+
+Các biểu đồ thống kê: sử dụng Chart.js để hiển thị biểu đồ tương tác.
+
+Chức năng quản lý thực đơn, bàn ăn, người dùng, đơn hàng.
+
+4.2.5. Tích hợp Realtime Communication
+SignalR:
+
+Thiết lập hub cho thông báo đặt bàn và đơn hàng mới.
+
+Tích hợp trên trang quản trị và trang đặt bàn để cập nhật tự động trạng thái.
+
+4.2.6. Thanh toán & Xác thực
+Thanh toán:
+
+Tích hợp cổng thanh toán trực tuyến (ví dụ: Stripe, PayPal) hoặc hệ thống thanh toán nội bộ.
+
+Xác thực:
+
+Sử dụng ASP.NET Core Identity cho việc đăng nhập, đăng ký.
+
+Các trang đặt món sẽ yêu cầu xác thực khi tiến hành thanh toán và lưu đơn hàng.
+
+5. Kiểm Thử, Triển Khai và Bảo Trì
+5.1. Kiểm Thử
+Unit Testing:
+
+Viết test cho các controller, service và business logic.
+
+Integration Testing:
+
+Test luồng đặt bàn, đặt món và quá trình thanh toán.
+
+Realtime Testing:
+
+Đảm bảo SignalR hoạt động ổn định với nhiều kết nối đồng thời.
+
+Responsive Testing:
+
+Kiểm tra giao diện trên các thiết bị di động, máy tính bảng, desktop.
+
+5.2. Triển Khai
+Cấu hình môi trường:
+
+Sử dụng IIS hoặc triển khai lên cloud (Azure, AWS).
+
+Cấu hình CI/CD để tự động build và deploy.
+
+Bảo mật:
+
+Sử dụng HTTPS, cấu hình CORS nếu cần, triển khai các biện pháp bảo mật (ví dụ: SQL injection, XSS).
+
+5.3. Bảo Trì & Nâng Cấp
+Logging & Monitoring:
+
+Tích hợp các công cụ logging như Serilog, NLog.
+
+Giám sát hoạt động của hệ thống và theo dõi lỗi.
+
+Feedback từ người dùng:
+
+Thu thập ý kiến khách hàng để cải tiến UI/UX và bổ sung tính năng mới.
+
+Cập nhật & bảo trì định kỳ:
+
+Đảm bảo các thư viện, framework luôn được cập nhật.
+
+Thực hiện backup định kỳ cho cơ sở dữ liệu.
+
+6. Quy Trình Phát Triển & Timeline Dự Kiến
+Giai đoạn 1 – Phân tích & Thiết kế (1-2 tuần):
+
+Thu thập yêu cầu, phân tích nghiệp vụ, lên sơ đồ use-case, thiết kế kiến trúc hệ thống.
+
+Thiết kế cơ sở dữ liệu và giao diện wireframe.
+
+Giai đoạn 2 – Xây dựng nền tảng (2-3 tuần):
+
+Tạo project, cấu trúc thư mục, tích hợp các thư viện cần thiết.
+
+Phát triển module người dùng (đăng nhập, đăng ký, phân quyền).
+
+Phát triển cơ sở dữ liệu với Entity Framework Core.
+
+Giai đoạn 3 – Phát triển chức năng chính (3-4 tuần):
+
+Phát triển dashboard công khai cho thực đơn.
+
+Phát triển chức năng đặt bàn và đặt món, tích hợp realtime (SignalR).
+
+Phát triển module quản lý đơn hàng, thanh toán.
+
+Giai đoạn 4 – Phát triển giao diện quản trị & báo cáo (2-3 tuần):
+
+Xây dựng trang quản trị, dashboard báo cáo.
+
+Tích hợp biểu đồ thống kê và chức năng quản lý nội dung (CRUD).
+
+Giai đoạn 5 – Kiểm thử & Triển khai (2 tuần):
+
+Viết unit, integration test.
+
+Test realtime, responsive.
+
+Triển khai lên môi trường staging và production.
+
+Đào tạo người dùng cuối (nếu cần).
+
+Giai đoạn 6 – Bảo trì & Nâng cấp liên tục:
+
+Giám sát hoạt động, thu thập feedback và cải tiến hệ thống.
+
+7. Công Cụ & Công Nghệ Đề Xuất
+Ngôn ngữ & Framework:
+
+ASP.NET Core MVC (.NET 5/6/7 tùy theo dự án)
+
+Cơ sở dữ liệu:
+
+SQL Server, hoặc MySQL nếu cần
+
+Realtime Communication:
+
+SignalR
+
+Giao diện:
+
+Razor Views, Bootstrap, jQuery (hoặc sử dụng các framework JS như React nếu cần)
+
+Thanh toán:
+
+Tích hợp các API thanh toán như Stripe hoặc PayPal
+
+Testing:
+
+xUnit, NUnit cho unit tests; Selenium cho UI testing
+
+Logging & Monitoring:
+
+Serilog, NLog, Application Insights (nếu triển khai trên Azure)
+

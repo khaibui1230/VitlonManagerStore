@@ -1,0 +1,262 @@
+@model QuanVitLonManager.Models.Order
+@using QuanVitLonManager.Models
+@{
+    ViewData["Title"] = "Xác nhận đơn hàng";
+}
+
+<div class="container mt-5">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            @if (TempData["SuccessMessage"] != null)
+            {
+                <div class="alert alert-success alert-dismissible fade show" role="alert">
+                    <i class="fas fa-check-circle me-2"></i>@TempData["SuccessMessage"]
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+            }
+
+            @if (TempData["ErrorMessage"] != null)
+            {
+                <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                    <i class="fas fa-exclamation-circle me-2"></i>@TempData["ErrorMessage"]
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+            }
+
+            @if (Model == null)
+            {
+                <div class="alert alert-warning" role="alert">
+                    <h4 class="alert-heading"><i class="fas fa-exclamation-triangle me-2"></i>Không tìm thấy đơn hàng!</h4>
+                    <p>Đơn hàng không tồn tại hoặc đã bị xóa.</p>
+                    <hr>
+                    <p class="mb-0">
+                        <a asp-controller="Menu" asp-action="Index" class="btn btn-primary">
+                            <i class="fas fa-utensils me-2"></i>Xem thực đơn
+                        </a>
+                        <a asp-controller="Order" asp-action="MyOrders" class="btn btn-info">
+                            <i class="fas fa-list me-2"></i>Xem đơn hàng của tôi
+                        </a>
+                    </p>
+                </div>
+            }
+            else
+            {
+                <div class="card mb-4 border-success">
+                    <div class="card-header bg-success text-white">
+                        <h3 class="mb-0">
+                            <i class="fas fa-check-circle me-2"></i>Đặt hàng thành công!
+                        </h3>
+                    </div>
+                    <div class="card-body">
+                        <div class="text-center mb-4">
+                            <i class="fas fa-utensils fa-4x text-success mb-3"></i>
+                            <h4>Cảm ơn bạn đã đặt hàng!</h4>
+                            <p class="lead">Đơn hàng #<span id="orderId">@Model.Id</span> của bạn đã được xác nhận.</p>
+                        </div>
+
+                        <div class="alert alert-info">
+                            <i class="fas fa-info-circle me-2"></i>Bạn có thể theo dõi trạng thái đơn hàng tại mục "Đơn hàng của tôi" trong tài khoản của bạn.
+                            @if (Model.Status == OrderStatus.Pending || Model.Status == OrderStatus.Confirmed)
+                            {
+                                <span class="d-block mt-2">
+                                    <i class="fas fa-edit me-2"></i>Bạn vẫn có thể chỉnh sửa đơn hàng này khi nó chưa được chuẩn bị.
+                                </span>
+                            }
+                        </div>
+
+                        <div class="row mb-4">
+                            <div class="col-md-6">
+                                <h5 class="border-bottom pb-2 mb-3"><i class="fas fa-info-circle me-2"></i>Thông tin đơn hàng</h5>
+                                <p><strong>Mã đơn hàng:</strong> #@Model.Id</p>
+                                <p><strong>Ngày đặt:</strong> @Model.OrderDate.ToString("dd/MM/yyyy HH:mm")</p>
+                                <p><strong>Bàn số:</strong> @(Model.Table?.TableNumber ?? "Không có")</p>
+                                @if (!string.IsNullOrEmpty(Model.Notes))
+                                {
+                                    <p><strong>Ghi chú:</strong> @Model.Notes</p>
+                                }
+                            </div>
+                            <div class="col-md-6">
+                                <h5 class="border-bottom pb-2 mb-3"><i class="fas fa-money-bill-wave me-2"></i>Thông tin thanh toán</h5>
+                                <p><strong>Tổng tiền:</strong> @string.Format("{0:N0} VNĐ", Model.TotalAmount)</p>
+                                <p><strong>Hình thức thanh toán:</strong> 
+                                    @if (Model.PaymentMethod == PaymentMethod.Cash)
+                                    {
+                                        <span class="badge bg-success"><i class="fas fa-money-bill-wave me-1"></i>Tiền mặt</span>
+                                    }
+                                    else if (Model.PaymentMethod == PaymentMethod.Card)
+                                    {
+                                        <span class="badge bg-primary"><i class="fas fa-credit-card me-1"></i>Thẻ tín dụng/ghi nợ</span>
+                                    }
+                                    else if (Model.PaymentMethod == PaymentMethod.MoMo)
+                                    {
+                                        <span class="badge bg-danger"><i class="fas fa-mobile-alt me-1"></i>Ví MoMo</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge bg-info"><i class="fas fa-university me-1"></i>Chuyển khoản</span>
+                                    }
+                                </p>
+                                <p><strong>Trạng thái:</strong> <span class="badge bg-warning text-dark">Đang chờ xử lý</span></p>
+                            </div>
+                        </div>
+
+                        <div class="alert alert-info mb-4">
+                            <p class="mb-1"><i class="fas fa-info-circle me-2"></i>Lưu ý về thanh toán:</p>
+                            <p class="mb-0">Bạn không cần thanh toán ngay. Đơn hàng sẽ được phục vụ và bạn chỉ cần thanh toán sau khi đã thưởng thức món ăn.</p>
+                        </div>
+
+                        <div class="alert alert-success mb-4">
+                            <p class="mb-1"><i class="fas fa-check-circle me-2"></i>Đơn hàng đã được gửi đến bếp!</p>
+                            <p class="mb-0">Các món ăn của bạn đang được đầu bếp chuẩn bị. Nhân viên sẽ phục vụ món ăn tới bàn sớm nhất có thể.</p>
+                        </div>
+
+                        <h5 class="border-bottom pb-2 mb-3"><i class="fas fa-shopping-cart me-2"></i>Danh sách món ăn</h5>
+                        <div class="table-responsive">
+                            <table class="table table-striped">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>Món ăn</th>
+                                        <th class="text-center">Số lượng</th>
+                                        <th class="text-end">Đơn giá</th>
+                                        <th class="text-end">Thành tiền</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var item in Model.OrderDetails)
+                                    {
+                                        <tr>
+                                            <td>@(item.MenuItem?.Name ?? "Món không tồn tại")</td>
+                                            <td class="text-center">@item.Quantity</td>
+                                            <td class="text-end">@string.Format("{0:N0} VNĐ", item.Price)</td>
+                                            <td class="text-end">@string.Format("{0:N0} VNĐ", item.Price * item.Quantity)</td>
+                                        </tr>
+                                        @if (!string.IsNullOrEmpty(item.Notes))
+                                        {
+                                            <tr class="table-light">
+                                                <td colspan="4" class="small text-muted">
+                                                    <i class="fas fa-sticky-note me-1"></i>Ghi chú: @item.Notes
+                                                </td>
+                                            </tr>
+                                        }
+                                    }
+                                </tbody>
+                                <tfoot class="table-light">
+                                    <tr>
+                                        <th colspan="3" class="text-end">Tổng cộng:</th>
+                                        <th class="text-end">@string.Format("{0:N0} VNĐ", Model.TotalAmount)</th>
+                                    </tr>
+                                </tfoot>
+                            </table>
+                        </div>
+                    </div>
+                    <div class="card-footer bg-white">
+                        <div class="d-flex flex-column flex-md-row justify-content-between gap-2">
+                            <a asp-controller="Menu" asp-action="Index" class="btn btn-outline-primary">
+                                <i class="fas fa-utensils me-2"></i>Tiếp tục đặt món
+                            </a>
+                            @if (User.Identity.IsAuthenticated && (Model.Status == OrderStatus.Pending || Model.Status == OrderStatus.Confirmed))
+                            {
+                                <a asp-action="EditOrder" asp-route-id="@Model.Id" class="btn btn-warning">
+                                    <i class="fas fa-edit me-2"></i>Chỉnh sửa đơn hàng
+                                </a>
+                            }
+                            <a asp-action="MyOrders" class="btn btn-info">
+                                <i class="fas fa-list me-2"></i>Đơn hàng của tôi
+                            </a>
+                            @if (User.Identity.IsAuthenticated)
+                            {
+                                <a asp-action="Details" asp-route-id="@Model.Id" class="btn btn-primary">
+                                    <i class="fas fa-info-circle me-2"></i>Xem chi tiết đơn hàng
+                                </a>
+                            }
+                        </div>
+                    </div>
+                </div>
+
+                <div id="recentOrdersSection" class="card mb-4 d-none">
+                    <div class="card-header bg-info text-white">
+                        <h5 class="mb-0"><i class="fas fa-history me-2"></i>Đơn hàng gần đây</h5>
+                    </div>
+                    <div class="card-body">
+                        <p>Bạn có thể xem nhanh các đơn hàng đã đặt gần đây:</p>
+                        <div id="recentOrdersList" class="list-group mt-3">
+                            <!-- Danh sách đơn hàng gần đây sẽ được hiển thị ở đây -->
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-header bg-light">
+                        <h5 class="mb-0"><i class="fas fa-question-circle me-2"></i>Bạn cần hỗ trợ?</h5>
+                    </div>
+                    <div class="card-body">
+                        <p>Nếu bạn có bất kỳ câu hỏi nào về đơn hàng, vui lòng liên hệ với chúng tôi:</p>
+                        <ul class="list-unstyled">
+                            <li><i class="fas fa-phone me-2"></i>Hotline: <strong>1900-1234</strong></li>
+                            <li><i class="fas fa-envelope me-2"></i>Email: <strong>support@quanvitlon.com</strong></li>
+                        </ul>
+                    </div>
+                </div>
+            }
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        // Lưu đơn hàng vào danh sách đơn hàng gần đây trong localStorage
+        $(document).ready(function() {
+            @if (Model != null)
+            {
+                <text>
+                const currentOrderId = @Model.Id;
+                
+                // Lấy danh sách đơn hàng gần đây từ localStorage hoặc tạo một danh sách mới nếu chưa tồn tại
+                let recentOrders = JSON.parse(localStorage.getItem('recentOrders') || '[]');
+                
+                // Kiểm tra xem đơn hàng hiện tại đã có trong danh sách chưa
+                if (!recentOrders.includes(currentOrderId)) {
+                    // Thêm đơn hàng mới vào đầu danh sách
+                    recentOrders.unshift(currentOrderId);
+                    
+                    // Giới hạn danh sách đơn hàng gần đây chỉ chứa tối đa 5 đơn hàng
+                    if (recentOrders.length > 5) {
+                        recentOrders = recentOrders.slice(0, 5);
+                    }
+                    
+                    // Lưu danh sách mới vào localStorage
+                    localStorage.setItem('recentOrders', JSON.stringify(recentOrders));
+                }
+                
+                // Hiển thị danh sách đơn hàng gần đây nếu có nhiều hơn 1 đơn hàng
+                if (recentOrders.length > 1) {
+                    const recentOrdersList = $('#recentOrdersList');
+                    
+                    // Xóa tất cả các phần tử hiện có
+                    recentOrdersList.empty();
+                    
+                    // Thêm các đơn hàng gần đây vào danh sách
+                    recentOrders.forEach(function(orderId) {
+                        if (orderId !== currentOrderId) {
+                            recentOrdersList.append(`
+                                <a href="/Order/Details/${orderId}" class="list-group-item list-group-item-action">
+                                    <i class="fas fa-receipt me-2"></i>Đơn hàng #${orderId}
+                                </a>
+                            `);
+                        }
+                    });
+                    
+                    // Hiển thị phần đơn hàng gần đây
+                    $('#recentOrdersSection').removeClass('d-none');
+                }
+                </text>
+            }
+            else
+            {
+                <text>
+                console.log("Không có thông tin đơn hàng");
+                </text>
+            }
+        });
+    </script>
+} 

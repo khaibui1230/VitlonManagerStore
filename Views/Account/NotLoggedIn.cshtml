@@ -1,0 +1,11 @@
+@{
+    ViewData["Title"] = "Chưa đăng nhập";
+}
+
+<div class="container py-5">
+    <div class="text-center">
+        <h1>@ViewData["Title"]</h1>
+        <p class="lead">Bạn chưa đăng nhập vào hệ thống.</p>
+        <a asp-controller="Account" asp-action="Login" class="btn btn-primary">Đăng nhập</a>
+    </div>
+</div>

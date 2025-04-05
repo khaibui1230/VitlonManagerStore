@@ -1,0 +1,148 @@
+@model QuanVitLonManager.ViewModels.ReservationViewModel
+
+@{
+    ViewData["Title"] = "Đặt bàn";
+}
+
+<div class="container py-4">
+    <h1 class="mb-4">Đặt bàn</h1>
+
+    @if (TempData["SuccessMessage"] != null)
+    {
+        <div class="alert alert-success alert-dismissible fade show" role="alert">
+            @TempData["SuccessMessage"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+
+    @if (TempData["ErrorMessage"] != null)
+    {
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+            @TempData["ErrorMessage"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+
+    <div class="row">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0">Thông tin đặt bàn</h5>
+                </div>
+                <div class="card-body">
+                    <form asp-action="Create" method="post">
+                        <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+
+                        <div class="mb-3">
+                            <label asp-for="Reservation.ReservationTime" class="form-label">Thời gian đặt bàn</label>
+                            <input asp-for="Reservation.ReservationTime" class="form-control" type="datetime-local" />
+                            <span asp-validation-for="Reservation.ReservationTime" class="text-danger"></span>
+                        </div>
+
+                        <div class="mb-3">
+                            <label asp-for="Reservation.NumberOfGuests" class="form-label">Số lượng khách</label>
+                            <input asp-for="Reservation.NumberOfGuests" class="form-control" min="1" max="20" />
+                            <span asp-validation-for="Reservation.NumberOfGuests" class="text-danger"></span>
+                        </div>
+
+                        <div class="mb-3">
+                            <label asp-for="Reservation.TableId" class="form-label">Chọn bàn</label>
+                            <select asp-for="Reservation.TableId" class="form-select">
+                                <option value="">-- Chọn bàn --</option>
+                                @foreach (var table in Model.AvailableTables)
+                                {
+                                    <option value="@table.Id">Bàn @table.TableNumber - Khu vực: @table.Area - Sức chứa: @table.Capacity người</option>
+                                }
+                            </select>
+                            <span asp-validation-for="Reservation.TableId" class="text-danger"></span>
+                        </div>
+
+                        <div class="mb-3">
+                            <label asp-for="Reservation.Notes" class="form-label">Ghi chú</label>
+                            <textarea asp-for="Reservation.Notes" class="form-control" rows="3"></textarea>
+                            <span asp-validation-for="Reservation.Notes" class="text-danger"></span>
+                        </div>
+
+                        <div class="d-grid">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-calendar-check me-2"></i>Đặt bàn
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0">Bàn hiện có</h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Số bàn</th>
+                                    <th>Khu vực</th>
+                                    <th>Sức chứa</th>
+                                    <th>Trạng thái</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var table in Model.AvailableTables)
+                                {
+                                    <tr>
+                                        <td>@table.TableNumber</td>
+                                        <td>@table.Area</td>
+                                        <td>@table.Capacity người</td>
+                                        <td><span class="badge bg-success">Trống</span></td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        $(document).ready(function() {
+            // Kiểm tra tính khả dụng của bàn khi thay đổi thời gian hoặc số lượng khách
+            $('#Reservation_ReservationTime, #Reservation_NumberOfGuests').change(function() {
+                checkAvailability();
+            });
+
+            function checkAvailability() {
+                var date = $('#Reservation_ReservationTime').val();
+                var guests = $('#Reservation_NumberOfGuests').val();
+                
+                if (date && guests) {
+                    $.ajax({
+                        url: '@Url.Action("CheckAvailability", "Reservation")',
+                        type: 'GET',
+                        data: {
+                            date: date,
+                            guests: guests
+                        },
+                        success: function(response) {
+                            if (response.success) {
+                                // Cập nhật danh sách bàn
+                                var select = $('#Reservation_TableId');
+                                select.empty();
+                                select.append('<option value="">-- Chọn bàn --</option>');
+                                
+                                $.each(response.tables, function(i, table) {
+                                    select.append('<option value="' + table.id + '">Bàn ' + table.tableNumber + ' - Khu vực: ' + table.area + ' - Sức chứa: ' + table.capacity + ' người</option>');
+                                });
+                            }
+                        }
+                    });
+                }
+            }
+        });
+    </script>
+}
