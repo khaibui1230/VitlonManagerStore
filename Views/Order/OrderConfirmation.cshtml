@@ -154,7 +154,7 @@
                             <a asp-controller="Menu" asp-action="Index" class="btn btn-outline-primary">
                                 <i class="fas fa-utensils me-2"></i>Tiếp tục đặt món
                             </a>
-                            @if (User.Identity.IsAuthenticated && (Model.Status == OrderStatus.Pending || Model.Status == OrderStatus.Confirmed))
+                            @if (User.Identity?.IsAuthenticated == true && (Model.Status == OrderStatus.Pending || Model.Status == OrderStatus.Confirmed))
                             {
                                 <a asp-action="EditOrder" asp-route-id="@Model.Id" class="btn btn-warning">
                                     <i class="fas fa-edit me-2"></i>Chỉnh sửa đơn hàng

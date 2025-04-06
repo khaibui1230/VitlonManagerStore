@@ -114,7 +114,7 @@
                                             {
                                                 <form asp-action="UpdateDishNoteStatus" method="post" class="d-inline dish-status-form">
                                                     <input type="hidden" name="menuItemId" value="@item.DishId" />
-                                                    <input type="hidden" name="notes" value="@(item.Notes.Any() ? item.Notes.First() : "")" />
+                                                    <input type="hidden" name="notes" value="@(item.Notes?.Any() == true ? item.Notes.First() : "")" />
                                                     <input type="hidden" name="status" value="Preparing" />
                                                     <button type="submit" class="btn btn-primary me-1">
                                                         <i class="fas fa-hourglass-start me-1"></i> Bắt đầu làm
@@ -122,7 +122,7 @@
                                                 </form>
                                                 <form asp-action="UpdateDishNoteStatus" method="post" class="d-inline dish-status-form">
                                                     <input type="hidden" name="menuItemId" value="@item.DishId" />
-                                                    <input type="hidden" name="notes" value="@(item.Notes.Any() ? item.Notes.First() : "")" />
+                                                    <input type="hidden" name="notes" value="@(item.Notes?.Any() == true ? item.Notes.First() : "")" />
                                                     <input type="hidden" name="status" value="Completed" />
                                                     <button type="submit" class="btn btn-success complete-btn">
                                                         <i class="fas fa-check-circle me-1"></i> Hoàn thành
@@ -133,7 +133,7 @@
                                             {
                                                 <form asp-action="UpdateDishNoteStatus" method="post" class="d-inline dish-status-form">
                                                     <input type="hidden" name="menuItemId" value="@item.DishId" />
-                                                    <input type="hidden" name="notes" value="@(item.Notes.Any() ? item.Notes.First() : "")" />
+                                                    <input type="hidden" name="notes" value="@(item.Notes?.Any() == true ? item.Notes.First() : "")" />
                                                     <input type="hidden" name="status" value="Pending" />
                                                     <button type="submit" class="btn btn-warning btn-sm">
                                                         <i class="fas fa-undo me-1"></i> Chuyển về chờ

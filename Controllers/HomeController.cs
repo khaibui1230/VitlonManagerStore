@@ -21,12 +21,25 @@ namespace QuanVitLonManager.Controllers
 
         public async Task<IActionResult> Index()
         {
-            // Load categories with their menu items
-            var categories = await _context.Categories
-                .Include(c => c.MenuItems)
-                .ToListAsync();
+            try
+            {
+                _logger.LogInformation("Loading categories from database");
+                var categories = await _context.Categories
+                    .Include(c => c.MenuItems)
+                    .ToListAsync();
                 
-            return View(categories);
+                _logger.LogInformation($"Successfully loaded {categories.Count} categories");
+                return View(categories);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error occurred while loading categories");
+                return View("Error", new ErrorViewModel 
+                { 
+                    RequestId = Activity.Current?.Id ?? HttpContext.TraceIdentifier,
+                    ErrorMessage = "Không thể tải danh mục. Vui lòng thử lại sau."
+                });
+            }
         }
 
         public IActionResult Privacy()
@@ -42,7 +55,15 @@ namespace QuanVitLonManager.Controllers
         [ResponseCache(Duration = 0, Location = ResponseCacheLocation.None, NoStore = true)]
         public IActionResult Error()
         {
-            return View(new ErrorViewModel { RequestId = Activity.Current?.Id ?? HttpContext.TraceIdentifier });
+            var errorViewModel = new ErrorViewModel 
+            { 
+                RequestId = Activity.Current?.Id ?? HttpContext.TraceIdentifier
+            };
+
+            // Log error details
+            _logger.LogError("Error occurred. RequestId: {RequestId}", errorViewModel.RequestId);
+
+            return View(errorViewModel);
         }
 
         public IActionResult About()

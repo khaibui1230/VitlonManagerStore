@@ -258,7 +258,7 @@ namespace QuanVitLonManager.Controllers
         }
 
         // GET: Order/AnonymousOrderConfirmation/5
-        public async Task<IActionResult> AnonymousOrderConfirmation(int id, string phoneNumber = null)
+        public async Task<IActionResult> AnonymousOrderConfirmation(int id, string? phoneNumber = null)
         {
             _logger.LogInformation("AnonymousOrderConfirmation called with id={0}, phoneNumber={1}", id, phoneNumber);
             
@@ -381,7 +381,7 @@ namespace QuanVitLonManager.Controllers
         }
 
         // GET: Order/MyOrders
-        public async Task<IActionResult> MyOrders(string phoneNumber = null)
+        public async Task<IActionResult> MyOrders(string? phoneNumber = null)
         {
             // Nếu người dùng đăng nhập, lấy danh sách đơn hàng của họ
             if (User.Identity.IsAuthenticated)
@@ -447,7 +447,7 @@ namespace QuanVitLonManager.Controllers
         }
 
         // GET: Order/Details/5
-        public async Task<IActionResult> Details(int id, string phoneNumber = null)
+        public async Task<IActionResult> Details(int id, string? phoneNumber = null)
         {
             // Nếu người dùng đã đăng nhập
             if (User.Identity.IsAuthenticated)
