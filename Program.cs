@@ -254,43 +254,133 @@ app.MapControllerRoute(
     pattern: "chef/{action=Index}/{id?}",
     defaults: new { controller = "Chef" });
 
-// Initialize database
+// Tạo các bảng và migrate database
 using (var scope = app.Services.CreateScope())
 {
     var services = scope.ServiceProvider;
     try
     {
-        Log.Information("Checking database status...");
         var context = services.GetRequiredService<ApplicationDbContext>();
+        var userManager = services.GetRequiredService<UserManager<ApplicationUser>>();
+        var roleManager = services.GetRequiredService<RoleManager<IdentityRole>>();
         
-        // Log connection string (ẩn password)
-        var sanitizedConnectionString = connectionString?.Replace(
-            context.Database.GetConnectionString() ?? "",
-            "[HIDDEN]"
-        );
-        Log.Information($"Using connection string: {sanitizedConnectionString}");
+        // Tạo kết nối tới database
+        var connection = context.Database.GetDbConnection();
+        if (connection.State != System.Data.ConnectionState.Open)
+            connection.Open();
+
+        Log.Information("Checking and creating database tables if needed...");
         
-        // Ensure database exists
-        try {
-            Log.Information("Checking if database exists...");
-            bool exists = await context.Database.CanConnectAsync();
-            
-            if (exists) {
-                Log.Information("Database exists. Checking tables...");
-                
-                // Force create tables if they don't exist
-                try {
-                    Log.Information("Checking if Categories table exists...");
-                    var categoriesCount = await context.Categories.CountAsync();
-                    Log.Information($"Categories table exists with {categoriesCount} records");
-                }
-                catch (PostgresException pgEx) when (pgEx.SqlState == "42P01") // relation does not exist
-                {
-                    Log.Warning("Categories table does not exist! Creating tables manually...");
-                    
-                    // Execute create tables script directly
-                    try {
-                        await context.Database.ExecuteSqlRawAsync(@"
+        // Tạo schema nếu chưa tồn tại
+        using (var command = connection.CreateCommand())
+        {
+            command.CommandText = "CREATE SCHEMA IF NOT EXISTS public;";
+            command.ExecuteNonQuery();
+            Log.Information("Public schema created or already exists.");
+        }
+        
+        // Tạo các bảng Identity thủ công
+        using (var command = connection.CreateCommand())
+        {
+            command.CommandText = @"
+-- AspNetRoles
+CREATE TABLE IF NOT EXISTS ""AspNetRoles"" (
+    ""Id"" text NOT NULL,
+    ""Name"" character varying(256) NULL,
+    ""NormalizedName"" character varying(256) NULL,
+    ""ConcurrencyStamp"" text NULL,
+    CONSTRAINT ""PK_AspNetRoles"" PRIMARY KEY (""Id"")
+);
+
+-- AspNetUsers
+CREATE TABLE IF NOT EXISTS ""AspNetUsers"" (
+    ""Id"" text NOT NULL,
+    ""UserName"" character varying(256) NULL,
+    ""NormalizedUserName"" character varying(256) NULL,
+    ""Email"" character varying(256) NULL,
+    ""NormalizedEmail"" character varying(256) NULL,
+    ""EmailConfirmed"" boolean NOT NULL,
+    ""PasswordHash"" text NULL,
+    ""SecurityStamp"" text NULL,
+    ""ConcurrencyStamp"" text NULL,
+    ""PhoneNumber"" text NULL,
+    ""PhoneNumberConfirmed"" boolean NOT NULL,
+    ""TwoFactorEnabled"" boolean NOT NULL,
+    ""LockoutEnd"" timestamp with time zone NULL,
+    ""LockoutEnabled"" boolean NOT NULL,
+    ""AccessFailedCount"" integer NOT NULL,
+    CONSTRAINT ""PK_AspNetUsers"" PRIMARY KEY (""Id"")
+);
+
+-- AspNetRoleClaims
+CREATE TABLE IF NOT EXISTS ""AspNetRoleClaims"" (
+    ""Id"" serial NOT NULL,
+    ""RoleId"" text NOT NULL,
+    ""ClaimType"" text NULL,
+    ""ClaimValue"" text NULL,
+    CONSTRAINT ""PK_AspNetRoleClaims"" PRIMARY KEY (""Id""),
+    CONSTRAINT ""FK_AspNetRoleClaims_AspNetRoles_RoleId"" FOREIGN KEY (""RoleId"") REFERENCES ""AspNetRoles"" (""Id"") ON DELETE CASCADE
+);
+
+-- AspNetUserClaims
+CREATE TABLE IF NOT EXISTS ""AspNetUserClaims"" (
+    ""Id"" serial NOT NULL,
+    ""UserId"" text NOT NULL,
+    ""ClaimType"" text NULL,
+    ""ClaimValue"" text NULL,
+    CONSTRAINT ""PK_AspNetUserClaims"" PRIMARY KEY (""Id""),
+    CONSTRAINT ""FK_AspNetUserClaims_AspNetUsers_UserId"" FOREIGN KEY (""UserId"") REFERENCES ""AspNetUsers"" (""Id"") ON DELETE CASCADE
+);
+
+-- AspNetUserLogins
+CREATE TABLE IF NOT EXISTS ""AspNetUserLogins"" (
+    ""LoginProvider"" text NOT NULL,
+    ""ProviderKey"" text NOT NULL,
+    ""ProviderDisplayName"" text NULL,
+    ""UserId"" text NOT NULL,
+    CONSTRAINT ""PK_AspNetUserLogins"" PRIMARY KEY (""LoginProvider"", ""ProviderKey""),
+    CONSTRAINT ""FK_AspNetUserLogins_AspNetUsers_UserId"" FOREIGN KEY (""UserId"") REFERENCES ""AspNetUsers"" (""Id"") ON DELETE CASCADE
+);
+
+-- AspNetUserRoles
+CREATE TABLE IF NOT EXISTS ""AspNetUserRoles"" (
+    ""UserId"" text NOT NULL,
+    ""RoleId"" text NOT NULL,
+    CONSTRAINT ""PK_AspNetUserRoles"" PRIMARY KEY (""UserId"", ""RoleId""),
+    CONSTRAINT ""FK_AspNetUserRoles_AspNetRoles_RoleId"" FOREIGN KEY (""RoleId"") REFERENCES ""AspNetRoles"" (""Id"") ON DELETE CASCADE,
+    CONSTRAINT ""FK_AspNetUserRoles_AspNetUsers_UserId"" FOREIGN KEY (""UserId"") REFERENCES ""AspNetUsers"" (""Id"") ON DELETE CASCADE
+);
+
+-- AspNetUserTokens
+CREATE TABLE IF NOT EXISTS ""AspNetUserTokens"" (
+    ""UserId"" text NOT NULL,
+    ""LoginProvider"" text NOT NULL,
+    ""Name"" text NOT NULL,
+    ""Value"" text NULL,
+    CONSTRAINT ""PK_AspNetUserTokens"" PRIMARY KEY (""UserId"", ""LoginProvider"", ""Name""),
+    CONSTRAINT ""FK_AspNetUserTokens_AspNetUsers_UserId"" FOREIGN KEY (""UserId"") REFERENCES ""AspNetUsers"" (""Id"") ON DELETE CASCADE
+);
+
+-- Indexes for AspNetRoles
+CREATE INDEX IF NOT EXISTS ""RoleNameIndex"" ON ""AspNetRoles"" (""NormalizedName"");
+
+-- Indexes for AspNetUsers
+CREATE INDEX IF NOT EXISTS ""EmailIndex"" ON ""AspNetUsers"" (""NormalizedEmail"");
+CREATE UNIQUE INDEX IF NOT EXISTS ""UserNameIndex"" ON ""AspNetUsers"" (""NormalizedUserName"");
+
+-- Indexes for AspNetRoleClaims
+CREATE INDEX IF NOT EXISTS ""IX_AspNetRoleClaims_RoleId"" ON ""AspNetRoleClaims"" (""RoleId"");
+
+-- Indexes for AspNetUserClaims
+CREATE INDEX IF NOT EXISTS ""IX_AspNetUserClaims_UserId"" ON ""AspNetUserClaims"" (""UserId"");
+
+-- Indexes for AspNetUserLogins
+CREATE INDEX IF NOT EXISTS ""IX_AspNetUserLogins_UserId"" ON ""AspNetUserLogins"" (""UserId"");
+
+-- Indexes for AspNetUserRoles
+CREATE INDEX IF NOT EXISTS ""IX_AspNetUserRoles_RoleId"" ON ""AspNetUserRoles"" (""RoleId"");
+
+-- Categories table
 CREATE TABLE IF NOT EXISTS ""Categories"" (
     ""Id"" serial NOT NULL,
     ""Name"" text NOT NULL,
@@ -300,57 +390,85 @@ CREATE TABLE IF NOT EXISTS ""Categories"" (
     ""IsActive"" boolean NOT NULL DEFAULT true,
     CONSTRAINT ""PK_Categories"" PRIMARY KEY (""Id"")
 );
-
-INSERT INTO ""Categories"" (""Name"", ""Description"", ""DisplayOrder"", ""IsActive"")
-VALUES 
-('Món chính', 'Các món chính trong thực đơn', 1, true),
-('Món phụ', 'Các món ăn kèm', 2, true), 
-('Đồ uống', 'Các loại đồ uống', 3, true),
-('Tráng miệng', 'Các món tráng miệng', 4, true)
-ON CONFLICT DO NOTHING;
-");
-                        Log.Information("Successfully created Categories table");
-                    }
-                    catch (Exception ex) {
-                        Log.Error(ex, "Error creating Categories table");
-                    }
-                }
-            }
-        }
-        catch (Exception ex) {
-            Log.Error(ex, "Error checking database");
+";
+            command.ExecuteNonQuery();
+            Log.Information("Identity tables created successfully.");
         }
         
-        // In production, migrations are handled by our startup script
-        if (!app.Environment.IsProduction())
+        // Kiểm tra và tạo dữ liệu Categories nếu chưa tồn tại
+        using (var command = connection.CreateCommand())
         {
-            // Only apply migrations in development
-            context.Database.Migrate();
-            Log.Information("Development database migration completed");
+            command.CommandText = "SELECT COUNT(*) FROM \"Categories\"";
+            var count = Convert.ToInt32(command.ExecuteScalar());
             
-            var userManager = services.GetRequiredService<UserManager<ApplicationUser>>();
-            var roleManager = services.GetRequiredService<RoleManager<IdentityRole>>();
-            
-            await DbInitializer.Initialize(context, userManager, roleManager);
-            Log.Information("Database initialization completed successfully");
+            if (count == 0)
+            {
+                using (var insertCommand = connection.CreateCommand())
+                {
+                    insertCommand.CommandText = @"
+INSERT INTO ""Categories"" (""Name"", ""Description"", ""DisplayOrder"", ""IsActive"")
+VALUES 
+('Trứng vịt lộn', 'Các loại trứng vịt lộn thượng hạng', 1, true),
+('Món ăn kèm', 'Các món ăn kèm đặc biệt', 2, true),
+('Combo', 'Các combo ưu đãi', 3, true),
+('Đồ uống', 'Các loại đồ uống giải khát', 4, true);";
+                    insertCommand.ExecuteNonQuery();
+                    Log.Information("Categories data seeded successfully.");
+                }
+            }
+            else
+            {
+                Log.Information($"Found {count} existing categories, skipping seed.");
+            }
         }
-        else
+        
+        // Kiểm tra và tạo role mặc định
+        string[] roleNames = { "Admin", "Manager", "Customer" };
+        foreach (var roleName in roleNames)
         {
-            Log.Information("Production database migrations handled by startup script");
+            if (!await roleManager.RoleExistsAsync(roleName))
+            {
+                await roleManager.CreateAsync(new IdentityRole(roleName));
+                Log.Information($"Role {roleName} created successfully.");
+            }
+        }
+        
+        // Tạo tài khoản Admin mặc định nếu chưa có
+        var adminUser = await userManager.FindByEmailAsync("admin@example.com");
+        if (adminUser == null)
+        {
+            var admin = new ApplicationUser
+            {
+                UserName = "admin@example.com",
+                Email = "admin@example.com",
+                EmailConfirmed = true,
+                PhoneNumber = "0123456789",
+                PhoneNumberConfirmed = true
+            };
+            
+            var result = await userManager.CreateAsync(admin, "Admin@123");
+            if (result.Succeeded)
+            {
+                await userManager.AddToRoleAsync(admin, "Admin");
+                Log.Information("Default admin user created successfully.");
+            }
+            else
+            {
+                var errors = string.Join(", ", result.Errors.Select(e => e.Description));
+                Log.Error($"Error creating admin user: {errors}");
+            }
         }
     }
     catch (Exception ex)
     {
-        Log.Error(ex, "An error occurred while checking database status");
-        
-        // Don't throw in production as our startup script handles migration
-        if (!app.Environment.IsProduction())
+        var npgsqlException = ex.InnerException as Npgsql.PostgresException;
+        if (npgsqlException != null)
         {
-            throw;
+            Log.Error($"PostgreSQL error: {npgsqlException.Message}");
         }
         else
         {
-            Log.Warning("Continuing despite database error");
+            Log.Error(ex, "An error occurred during database initialization.");
         }
     }
 }
