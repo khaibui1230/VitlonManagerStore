@@ -34,26 +34,38 @@ builder.Host.UseSerilog();
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
 if (builder.Environment.IsProduction())
 {
-    // Sử dụng DATABASE_URL từ Render
-    var databaseUrl = Environment.GetEnvironmentVariable("DATABASE_URL");
-    if (!string.IsNullOrEmpty(databaseUrl))
+    try
     {
-        try
-        {
-            // Parse DATABASE_URL
-            var uri = new Uri(databaseUrl);
-            var userInfo = uri.UserInfo.Split(':');
-            var host = uri.Host;
-            var port = uri.Port;
-            var database = uri.AbsolutePath.TrimStart('/');
+        // Lấy DATABASE_URL từ biến môi trường
+        var databaseUrl = Environment.GetEnvironmentVariable("DATABASE_URL");
+        Log.Information($"Database URL: {databaseUrl}");
 
-            connectionString = $"Host={host};Port={port};Database={database};Username={userInfo[0]};Password={userInfo[1]};SSL Mode=Require;Trust Server Certificate=true";
-        }
-        catch (Exception ex)
+        if (!string.IsNullOrEmpty(databaseUrl))
         {
-            Log.Error(ex, "Error parsing DATABASE_URL");
-            throw;
+            // Parse connection string từ DATABASE_URL của PostgreSQL
+            // Format: postgres://username:password@host:port/database
+            databaseUrl = databaseUrl.Replace("postgres://", string.Empty);
+            var pgUserPass = databaseUrl.Split("@")[0];
+            var pgHostDb = databaseUrl.Split("@")[1];
+            var pgUserName = pgUserPass.Split(":")[0];
+            var pgPassword = pgUserPass.Split(":")[1];
+            var pgHost = pgHostDb.Split("/")[0];
+            var pgDb = pgHostDb.Split("/")[1];
+            var pgPort = pgHost.Contains(":") ? pgHost.Split(":")[1] : "5432";
+            pgHost = pgHost.Split(":")[0];
+
+            connectionString = $"Host={pgHost};Port={pgPort};Database={pgDb};Username={pgUserName};Password={pgPassword};SSL Mode=Require;Trust Server Certificate=true";
+            Log.Information("Successfully parsed database connection string");
         }
+        else
+        {
+            Log.Warning("DATABASE_URL environment variable is empty");
+        }
+    }
+    catch (Exception ex)
+    {
+        Log.Error(ex, "Error parsing DATABASE_URL");
+        throw;
     }
 }
 
@@ -61,7 +73,7 @@ builder.Services.AddDbContext<ApplicationDbContext>(options =>
 {
     if (builder.Environment.IsProduction())
     {
-        // Sử dụng PostgreSQL cho production
+        Log.Information("Configuring PostgreSQL for production");
         options.UseNpgsql(connectionString, npgsqlOptions =>
         {
             npgsqlOptions.EnableRetryOnFailure(
@@ -72,7 +84,7 @@ builder.Services.AddDbContext<ApplicationDbContext>(options =>
     }
     else
     {
-        // Sử dụng SQL Server cho development
+        Log.Information("Configuring SQL Server for development");
         options.UseSqlServer(connectionString);
     }
 });
@@ -195,21 +207,27 @@ using (var scope = app.Services.CreateScope())
         Log.Information("Starting database migration...");
         var context = services.GetRequiredService<ApplicationDbContext>();
         
+        // Log connection string (ẩn password)
+        var sanitizedConnectionString = connectionString?.Replace(
+            context.Database.GetConnectionString() ?? "",
+            "[HIDDEN]"
+        );
+        Log.Information($"Using connection string: {sanitizedConnectionString}");
+        
         // Tự động apply migrations
         context.Database.Migrate();
-        Log.Information("Database migration completed");
+        Log.Information("Database migration completed successfully");
         
         var userManager = services.GetRequiredService<UserManager<ApplicationUser>>();
         var roleManager = services.GetRequiredService<RoleManager<IdentityRole>>();
         
         await DbInitializer.Initialize(context, userManager, roleManager);
-        
         Log.Information("Database initialization completed successfully");
     }
     catch (Exception ex)
     {
         Log.Error(ex, "An error occurred while migrating or initializing the database");
-        throw; // Để ứng dụng dừng nếu không thể kết nối database
+        throw;
     }
 }
 
