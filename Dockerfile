@@ -1,17 +1,23 @@
+# Build stage
 FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
 WORKDIR /src
-COPY ["QuanVitLonManager.csproj", "./"]
-RUN dotnet restore
+COPY ["QuanVitLonManager.csproj", "."]
+RUN dotnet restore "./QuanVitLonManager.csproj"
 COPY . .
-RUN dotnet build -c Release -o /app/build
-RUN dotnet publish -c Release -o /app/publish
+RUN dotnet build "QuanVitLonManager.csproj" -c Release -o /app/build
 
+# Publish stage
+FROM build AS publish
+RUN dotnet publish "QuanVitLonManager.csproj" -c Release -o /app/publish
+
+# Final stage
 FROM mcr.microsoft.com/dotnet/aspnet:8.0 AS final
 WORKDIR /app
-COPY --from=build /app/publish .
-EXPOSE 80
-EXPOSE 443
+COPY --from=publish /app/publish .
+
+# Set environment variables
 ENV ASPNETCORE_URLS=http://+:80
-RUN dotnet tool install --global dotnet-ef
-ENV PATH="${PATH}:/root/.dotnet/tools"
-ENTRYPOINT /bin/bash -c "dotnet ef database update && dotnet QuanVitLonManager.dll" 
+ENV ASPNETCORE_ENVIRONMENT=Production
+
+# Run the application
+ENTRYPOINT ["dotnet", "QuanVitLonManager.dll"] 

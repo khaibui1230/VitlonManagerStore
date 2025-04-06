@@ -192,16 +192,24 @@ using (var scope = app.Services.CreateScope())
     var services = scope.ServiceProvider;
     try
     {
+        Log.Information("Starting database migration...");
         var context = services.GetRequiredService<ApplicationDbContext>();
+        
+        // Tự động apply migrations
+        context.Database.Migrate();
+        Log.Information("Database migration completed");
+        
         var userManager = services.GetRequiredService<UserManager<ApplicationUser>>();
         var roleManager = services.GetRequiredService<RoleManager<IdentityRole>>();
         
         await DbInitializer.Initialize(context, userManager, roleManager);
+        
+        Log.Information("Database initialization completed successfully");
     }
     catch (Exception ex)
     {
-        var logger = services.GetRequiredService<ILogger<Program>>();
-        logger.LogError(ex, "An error occurred while seeding the database.");
+        Log.Error(ex, "An error occurred while migrating or initializing the database");
+        throw; // Để ứng dụng dừng nếu không thể kết nối database
     }
 }
 
