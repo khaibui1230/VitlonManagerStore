@@ -1,6 +1,8 @@
--- PostgreSQL compatibility script
--- This script handles the creation of tables with proper PostgreSQL types
--- It should be run after the database is created but before the application is started
+-- PostgreSQL compatibility script for QuanVitLonManager
+-- Script initialization
+SELECT current_timestamp AS "Script Started";
+
+BEGIN;
 
 -- Create migrations history table if it doesn't exist
 CREATE TABLE IF NOT EXISTS "__EFMigrationsHistory" (
@@ -8,6 +10,12 @@ CREATE TABLE IF NOT EXISTS "__EFMigrationsHistory" (
     "ProductVersion" text NOT NULL,
     CONSTRAINT "PK___EFMigrationsHistory" PRIMARY KEY ("MigrationId")
 );
+
+-- Log progress
+DO $$ 
+BEGIN
+    RAISE NOTICE 'Created __EFMigrationsHistory table';
+END $$;
 
 -- Create identity tables with PostgreSQL data types
 CREATE TABLE IF NOT EXISTS "AspNetRoles" (
@@ -38,6 +46,12 @@ CREATE TABLE IF NOT EXISTS "AspNetUsers" (
     "IsActive" boolean NOT NULL DEFAULT true,
     CONSTRAINT "PK_AspNetUsers" PRIMARY KEY ("Id")
 );
+
+-- Log progress
+DO $$ 
+BEGIN
+    RAISE NOTICE 'Created identity tables';
+END $$;
 
 CREATE TABLE IF NOT EXISTS "AspNetRoleClaims" (
     "Id" serial NOT NULL,
@@ -83,6 +97,12 @@ CREATE TABLE IF NOT EXISTS "AspNetUserTokens" (
     CONSTRAINT "FK_AspNetUserTokens_AspNetUsers_UserId" FOREIGN KEY ("UserId") REFERENCES "AspNetUsers" ("Id") ON DELETE CASCADE
 );
 
+-- Log progress
+DO $$ 
+BEGIN
+    RAISE NOTICE 'Created identity relation tables';
+END $$;
+
 -- Create application tables
 CREATE TABLE IF NOT EXISTS "Categories" (
     "Id" serial NOT NULL,
@@ -92,6 +112,12 @@ CREATE TABLE IF NOT EXISTS "Categories" (
     "DisplayOrder" integer NOT NULL DEFAULT 0,
     CONSTRAINT "PK_Categories" PRIMARY KEY ("Id")
 );
+
+-- Log progress
+DO $$ 
+BEGIN
+    RAISE NOTICE 'Created Categories table';
+END $$;
 
 CREATE TABLE IF NOT EXISTS "MenuItems" (
     "Id" serial NOT NULL,
@@ -110,6 +136,12 @@ CREATE TABLE IF NOT EXISTS "MenuItems" (
     CONSTRAINT "PK_MenuItems" PRIMARY KEY ("Id"),
     CONSTRAINT "FK_MenuItems_Categories_CategoryId" FOREIGN KEY ("CategoryId") REFERENCES "Categories" ("Id") ON DELETE RESTRICT
 );
+
+-- Log progress
+DO $$ 
+BEGIN
+    RAISE NOTICE 'Created MenuItems table';
+END $$;
 
 CREATE TABLE IF NOT EXISTS "Tables" (
     "Id" serial NOT NULL,
@@ -133,6 +165,12 @@ CREATE TABLE IF NOT EXISTS "Orders" (
     CONSTRAINT "FK_Orders_AspNetUsers_UserId" FOREIGN KEY ("UserId") REFERENCES "AspNetUsers" ("Id") ON DELETE RESTRICT
 );
 
+-- Log progress
+DO $$ 
+BEGIN
+    RAISE NOTICE 'Created Tables and Orders tables';
+END $$;
+
 CREATE TABLE IF NOT EXISTS "Reservations" (
     "Id" serial NOT NULL,
     "UserId" text NOT NULL,
@@ -141,7 +179,7 @@ CREATE TABLE IF NOT EXISTS "Reservations" (
     "Duration" integer NOT NULL DEFAULT 60,
     "Status" text NOT NULL,
     "NumberOfGuests" integer NOT NULL DEFAULT 1,
-    "Notes" text NOT NULL,
+    "Notes" text NOT NULL DEFAULT '',
     CONSTRAINT "PK_Reservations" PRIMARY KEY ("Id"),
     CONSTRAINT "FK_Reservations_AspNetUsers_UserId" FOREIGN KEY ("UserId") REFERENCES "AspNetUsers" ("Id") ON DELETE RESTRICT,
     CONSTRAINT "FK_Reservations_Tables_TableId" FOREIGN KEY ("TableId") REFERENCES "Tables" ("Id") ON DELETE RESTRICT
@@ -159,6 +197,12 @@ CREATE TABLE IF NOT EXISTS "CartItems" (
     CONSTRAINT "FK_CartItems_AspNetUsers_UserId" FOREIGN KEY ("UserId") REFERENCES "AspNetUsers" ("Id") ON DELETE CASCADE,
     CONSTRAINT "FK_CartItems_MenuItems_MenuItemId" FOREIGN KEY ("MenuItemId") REFERENCES "MenuItems" ("Id") ON DELETE CASCADE
 );
+
+-- Log progress
+DO $$ 
+BEGIN
+    RAISE NOTICE 'Created Reservations and CartItems tables';
+END $$;
 
 CREATE TABLE IF NOT EXISTS "OrderDetails" (
     "Id" serial NOT NULL,
@@ -185,6 +229,12 @@ CREATE TABLE IF NOT EXISTS "DishOrders" (
     CONSTRAINT "PK_DishOrders" PRIMARY KEY ("Id"),
     CONSTRAINT "FK_DishOrders_Orders_OrderId" FOREIGN KEY ("OrderId") REFERENCES "Orders" ("Id") ON DELETE CASCADE
 );
+
+-- Log progress
+DO $$ 
+BEGIN
+    RAISE NOTICE 'Created OrderDetails and DishOrders tables';
+END $$;
 
 CREATE TABLE IF NOT EXISTS "Reviews" (
     "Id" serial NOT NULL,
@@ -218,6 +268,12 @@ CREATE TABLE IF NOT EXISTS "UserCarts" (
     CONSTRAINT "FK_UserCarts_AspNetUsers_UserId" FOREIGN KEY ("UserId") REFERENCES "AspNetUsers" ("Id") ON DELETE CASCADE
 );
 
+-- Log progress
+DO $$ 
+BEGIN
+    RAISE NOTICE 'Created remaining tables';
+END $$;
+
 -- Create indexes for better performance
 CREATE INDEX IF NOT EXISTS "IX_AspNetRoleClaims_RoleId" ON "AspNetRoleClaims" ("RoleId");
 CREATE UNIQUE INDEX IF NOT EXISTS "RoleNameIndex" ON "AspNetRoles" ("NormalizedName") WHERE "NormalizedName" IS NOT NULL;
@@ -239,7 +295,39 @@ CREATE INDEX IF NOT EXISTS "IX_Reviews_MenuItemId" ON "Reviews" ("MenuItemId");
 CREATE INDEX IF NOT EXISTS "IX_Reviews_UserId" ON "Reviews" ("UserId");
 CREATE INDEX IF NOT EXISTS "IX_UserCarts_UserId" ON "UserCarts" ("UserId");
 
+-- Log progress
+DO $$ 
+BEGIN
+    RAISE NOTICE 'Created all indexes';
+END $$;
+
+-- Create initial category data
+INSERT INTO "Categories" ("Name", "Description", "DisplayOrder")
+VALUES 
+('Món chính', 'Các món chính trong thực đơn', 1),
+('Món phụ', 'Các món ăn kèm', 2), 
+('Đồ uống', 'Các loại đồ uống', 3),
+('Tráng miệng', 'Các món tráng miệng', 4)
+ON CONFLICT DO NOTHING;
+
 -- Add bootstrap data
 INSERT INTO "__EFMigrationsHistory" ("MigrationId", "ProductVersion")
 VALUES ('20250406035817_FixPostgreSqlTypes', '8.0.3')
-ON CONFLICT ("MigrationId") DO NOTHING; 
+ON CONFLICT ("MigrationId") DO NOTHING;
+
+-- Log progress
+DO $$ 
+BEGIN
+    RAISE NOTICE 'Inserted initial data';
+END $$;
+
+COMMIT;
+
+-- Script completion
+SELECT current_timestamp AS "Script Completed";
+
+-- Log final status
+DO $$ 
+BEGIN
+    RAISE NOTICE 'PostgreSQL setup script completed successfully';
+END $$; 
