@@ -309,6 +309,10 @@ CREATE TABLE IF NOT EXISTS ""AspNetUsers"" (
     ""LockoutEnd"" timestamp with time zone NULL,
     ""LockoutEnabled"" boolean NOT NULL,
     ""AccessFailedCount"" integer NOT NULL,
+    ""FirstName"" text NULL,
+    ""LastName"" text NULL,
+    ""Address"" text NULL,
+    ""CreatedAt"" timestamp with time zone NOT NULL DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT ""PK_AspNetUsers"" PRIMARY KEY (""Id"")
 );
 
@@ -385,14 +389,43 @@ CREATE TABLE IF NOT EXISTS ""Categories"" (
     ""Id"" serial NOT NULL,
     ""Name"" text NOT NULL,
     ""Description"" text NULL,
-    ""ImageUrl"" text NULL,
+    ""ImageUrl"" text NULL DEFAULT '/images/categories/default.jpg',
     ""DisplayOrder"" integer NOT NULL DEFAULT 0,
     ""IsActive"" boolean NOT NULL DEFAULT true,
     CONSTRAINT ""PK_Categories"" PRIMARY KEY (""Id"")
 );
+
+-- MenuItems table
+CREATE TABLE IF NOT EXISTS ""MenuItems"" (
+    ""Id"" serial NOT NULL,
+    ""Name"" text NOT NULL,
+    ""Description"" text NULL,
+    ""DetailedDescription"" text NULL,
+    ""Price"" numeric(18,2) NOT NULL,
+    ""OriginalPrice"" numeric(18,2) NOT NULL,
+    ""DiscountPercentage"" integer NOT NULL DEFAULT 0,
+    ""CategoryId"" integer NOT NULL,
+    ""ImageUrl"" text NULL,
+    ""Ingredients"" text NULL,
+    ""PreparationInstructions"" text NULL,
+    ""IsAvailable"" boolean NOT NULL DEFAULT true,
+    ""DisplayOrder"" integer NOT NULL DEFAULT 0,
+    ""IsPopular"" boolean NOT NULL DEFAULT false,
+    ""IsNew"" boolean NOT NULL DEFAULT false,
+    ""IsOnSale"" boolean NOT NULL DEFAULT false,
+    ""Calories"" integer NULL,
+    ""Protein"" numeric(10,2) NULL,
+    ""Fat"" numeric(10,2) NULL,
+    ""Carbs"" numeric(10,2) NULL,
+    CONSTRAINT ""PK_MenuItems"" PRIMARY KEY (""Id""),
+    CONSTRAINT ""FK_MenuItems_Categories_CategoryId"" FOREIGN KEY (""CategoryId"") REFERENCES ""Categories"" (""Id"") ON DELETE CASCADE
+);
+
+-- Index for CategoryId in MenuItems
+CREATE INDEX IF NOT EXISTS ""IX_MenuItems_CategoryId"" ON ""MenuItems"" (""CategoryId"");
 ";
             command.ExecuteNonQuery();
-            Log.Information("Identity tables created successfully.");
+            Log.Information("Identity and application tables created successfully.");
         }
         
         // Kiểm tra và tạo dữ liệu Categories nếu chưa tồn tại

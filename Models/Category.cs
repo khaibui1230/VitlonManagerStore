@@ -22,7 +22,7 @@ namespace QuanVitLonManager.Models
         // Make this nullable to handle case when MenuItems table doesn't exist yet
         public virtual ICollection<MenuItem>? MenuItems { get; set; }
 
-        [AllowNull]  // Changed from just AllowNull to the proper attribute
-        public string ImageUrl { get; set; } = "/images/categories/default.jpg";
+        [Display(Name = "Image URL")]
+        public string? ImageUrl { get; set; } = "/images/categories/default.jpg";
     }
 }
