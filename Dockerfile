@@ -12,4 +12,6 @@ COPY --from=build /app/publish .
 EXPOSE 80
 EXPOSE 443
 ENV ASPNETCORE_URLS=http://+:80
-ENTRYPOINT ["dotnet", "QuanVitLonManager.dll"] 
+RUN dotnet tool install --global dotnet-ef
+ENV PATH="${PATH}:/root/.dotnet/tools"
+ENTRYPOINT /bin/bash -c "dotnet ef database update && dotnet QuanVitLonManager.dll" 

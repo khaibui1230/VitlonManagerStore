@@ -13,6 +13,7 @@ using Microsoft.AspNetCore.Authentication.OAuth.Claims;
 using Microsoft.AspNetCore.Authentication.Google;
 using System.Text.Json;
 using System.Security.Claims;
+using Npgsql.EntityFrameworkCore.PostgreSQL;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -33,30 +34,45 @@ builder.Host.UseSerilog();
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
 if (builder.Environment.IsProduction())
 {
-    // Sử dụng connection string từ biến môi trường cho production
-    connectionString = Environment.GetEnvironmentVariable("DATABASE_URL");
-}
+    // Sử dụng DATABASE_URL từ Render
+    var databaseUrl = Environment.GetEnvironmentVariable("DATABASE_URL");
+    if (!string.IsNullOrEmpty(databaseUrl))
+    {
+        try
+        {
+            // Parse DATABASE_URL
+            var uri = new Uri(databaseUrl);
+            var userInfo = uri.UserInfo.Split(':');
+            var host = uri.Host;
+            var port = uri.Port;
+            var database = uri.AbsolutePath.TrimStart('/');
 
-if (string.IsNullOrEmpty(connectionString))
-{
-    throw new InvalidOperationException("Database connection string not found.");
+            connectionString = $"Host={host};Port={port};Database={database};Username={userInfo[0]};Password={userInfo[1]};SSL Mode=Require;Trust Server Certificate=true";
+        }
+        catch (Exception ex)
+        {
+            Log.Error(ex, "Error parsing DATABASE_URL");
+            throw;
+        }
+    }
 }
 
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
 {
     if (builder.Environment.IsProduction())
     {
-        // Cấu hình SSL cho production
-        options.UseSqlServer(connectionString, sqlOptions =>
+        // Sử dụng PostgreSQL cho production
+        options.UseNpgsql(connectionString, npgsqlOptions =>
         {
-            sqlOptions.EnableRetryOnFailure(
+            npgsqlOptions.EnableRetryOnFailure(
                 maxRetryCount: 5,
                 maxRetryDelay: TimeSpan.FromSeconds(30),
-                errorNumbersToAdd: null);
+                errorCodesToAdd: null);
         });
     }
     else
     {
+        // Sử dụng SQL Server cho development
         options.UseSqlServer(connectionString);
     }
 });
