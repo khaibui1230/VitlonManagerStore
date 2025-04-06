@@ -6,38 +6,64 @@ namespace QuanVitLonManager.Data
 {
     public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
     {
+        private readonly bool _isPostgreSql;
+
         public ApplicationDbContext(DbContextOptions<ApplicationDbContext> options)
             : base(options)
         {
+            // Check if we're using PostgreSQL
+            _isPostgreSql = Database.ProviderName?.Contains("Npgsql") ?? false;
         }
 
         protected override void OnModelCreating(ModelBuilder builder)
         {
             base.OnModelCreating(builder);
 
+            // Apply PostgreSQL specific configurations if needed
+            if (_isPostgreSql)
+            {
+                // Use our helper method for comprehensive PostgreSQL compatibility
+                builder.ConfigurePostgreSqlCompatibility();
+            }
+            else
+            {
+                // For SQL Server, just configure string columns
+                foreach (var entity in builder.Model.GetEntityTypes())
+                {
+                    foreach (var property in entity.GetProperties())
+                    {
+                        if (property.ClrType == typeof(string))
+                        {
+                            property.SetColumnType("nvarchar(max)");
+                        }
+                    }
+                }
+            }
+
+            // Configure all decimal properties with consistent precision
             builder.Entity<MenuItem>()
                 .Property(m => m.Price)
-                .HasColumnType("decimal(18,2)")
+                .HasColumnType(_isPostgreSql ? "numeric(18,2)" : "decimal(18,2)")
                 .IsRequired();
             
             builder.Entity<MenuItem>()
                 .Property(m => m.OriginalPrice)
-                .HasColumnType("decimal(18,2)")
+                .HasColumnType(_isPostgreSql ? "numeric(18,2)" : "decimal(18,2)")
                 .IsRequired();
 
             builder.Entity<Order>()
                 .Property(o => o.TotalAmount)
-                .HasColumnType("decimal(18,2)")
+                .HasColumnType(_isPostgreSql ? "numeric(18,2)" : "decimal(18,2)")
                 .IsRequired();
 
             builder.Entity<OrderDetail>()
                 .Property(od => od.UnitPrice)
-                .HasColumnType("decimal(18,2)")
+                .HasColumnType(_isPostgreSql ? "numeric(18,2)" : "decimal(18,2)")
                 .IsRequired();
 
             builder.Entity<OrderDetail>()
                 .Property(od => od.Subtotal)
-                .HasColumnType("decimal(18,2)")
+                .HasColumnType(_isPostgreSql ? "numeric(18,2)" : "decimal(18,2)")
                 .IsRequired();
             
             // Configure relationships and constraints with better cascade behavior
@@ -92,7 +118,7 @@ namespace QuanVitLonManager.Data
 
             builder.Entity<DishOrder>()
                 .Property(d => d.Price)
-                .HasColumnType("decimal(18,2)");
+                .HasColumnType(_isPostgreSql ? "numeric(18,2)" : "decimal(18,2)");
 
             // Make sure DishOrder is properly configured
             builder.Entity<DishOrder>()
@@ -100,7 +126,7 @@ namespace QuanVitLonManager.Data
                 
             builder.Entity<DishOrder>()
                 .Property(d => d.TotalPrice)
-                .HasColumnType("decimal(18,2)");
+                .HasColumnType(_isPostgreSql ? "numeric(18,2)" : "decimal(18,2)");
         }
 
         // Thêm vào class ApplicationDbContext

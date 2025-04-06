@@ -39,8 +39,9 @@ if (builder.Environment.IsProduction())
 {
     try
     {
+        // Get DATABASE_URL from environment variable
         var databaseUrl = Environment.GetEnvironmentVariable("DATABASE_URL");
-        Log.Information("Checking database configuration...");
+        Log.Information("Checking database config");
         
         if (string.IsNullOrEmpty(databaseUrl))
         {
@@ -48,30 +49,64 @@ if (builder.Environment.IsProduction())
             throw new InvalidOperationException("DATABASE_URL environment variable is required in production");
         }
 
-        Log.Information("Database URL format: {DatabaseUrlFormat}", 
-            databaseUrl.Substring(0, Math.Min(10, databaseUrl.Length)) + "...");
-
-        // Convert Postgres URL to Npgsql connection string
-        var uri = new Uri(databaseUrl);
-        var userInfo = uri.UserInfo.Split(':');
-        
-        var npgsqlBuilder = new NpgsqlConnectionStringBuilder
+        // Check different URL formats
+        if (databaseUrl.StartsWith("postgres://") || databaseUrl.StartsWith("postgresql://"))
         {
-            Host = uri.Host,
-            Port = uri.Port > 0 ? uri.Port : 5432,
-            Database = uri.AbsolutePath.TrimStart('/'),
-            Username = userInfo[0],
-            Password = userInfo[1],
-            SslMode = SslMode.Require,
-            TrustServerCertificate = true,
-            Pooling = true,
-            MinPoolSize = 0,
-            MaxPoolSize = 10,
-            ConnectionIdleLifetime = 300
-        };
+            try
+            {
+                Log.Information("Parsing PostgreSQL URL format...");
+                
+                // Parse URI format: postgres://username:password@host:port/database
+                var uri = new Uri(databaseUrl);
+                var userInfo = uri.UserInfo.Split(':');
+                var username = userInfo.Length > 0 ? userInfo[0] : "";
+                var password = userInfo.Length > 1 ? userInfo[1] : "";
+                var host = uri.Host;
+                var port = uri.Port > 0 ? uri.Port : 5432;
+                var database = uri.AbsolutePath.TrimStart('/');
 
-        connectionString = npgsqlBuilder.ToString();
-        Log.Information("Successfully built Npgsql connection string");
+                // Log the extracted connection details for debugging (excluding password)
+                Log.Information("PostgreSQL connection details extracted: User={Username}, Host={Host}, Port={Port}, Database={Database}", 
+                    username, host, port, database);
+                
+                // Create Npgsql connection string
+                var npgsqlBuilder = new NpgsqlConnectionStringBuilder
+                {
+                    Host = host,
+                    Port = port,
+                    Database = database,
+                    Username = username,
+                    Password = password,
+                    SslMode = SslMode.Prefer,
+                    Pooling = true,
+                    MinPoolSize = 1,
+                    MaxPoolSize = 20,
+                    ConnectionIdleLifetime = 300,
+                    Timeout = 30
+                };
+
+                connectionString = npgsqlBuilder.ToString();
+                Log.Information("Successfully built Npgsql connection string");
+            }
+            catch (Exception ex)
+            {
+                Log.Error(ex, "Failed to parse PostgreSQL URL format");
+                throw;
+            }
+        }
+        else if (databaseUrl.Contains("="))
+        {
+            // This is already in connection string format
+            Log.Information("Using provided connection string directly");
+            connectionString = databaseUrl;
+        }
+        else
+        {
+            // Not a recognized format - this might be a hash or some other identifier
+            Log.Error("Invalid DATABASE_URL format: {DatabaseUrlShort}...", 
+                databaseUrl.Length > 10 ? databaseUrl.Substring(0, 10) : databaseUrl);
+            throw new FormatException("DATABASE_URL must be a valid PostgreSQL URL or connection string");
+        }
     }
     catch (Exception ex)
     {
@@ -80,6 +115,10 @@ if (builder.Environment.IsProduction())
     }
 }
 
+// Enable PostgreSQL-specific settings for date handling
+AppContext.SetSwitch("Npgsql.EnableLegacyTimestampBehavior", true);
+
+// Configure DbContext
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
 {
     if (builder.Environment.IsProduction())
@@ -91,6 +130,9 @@ builder.Services.AddDbContext<ApplicationDbContext>(options =>
                 maxRetryCount: 5,
                 maxRetryDelay: TimeSpan.FromSeconds(30),
                 errorCodesToAdd: null);
+            
+            // Configure migrations table name for consistency
+            npgsqlOptions.MigrationsHistoryTable("__EFMigrationsHistory");
         });
     }
     else
@@ -286,12 +328,60 @@ if (app.Environment.IsProduction())
         Log.Information("Attempting to migrate database...");
         using var scope = app.Services.CreateScope();
         var dbContext = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+        
+        // Generate list of pending migrations for logging
+        var migrations = dbContext.Database.GetPendingMigrations().ToList();
+        if (migrations.Any())
+        {
+            Log.Information($"Applying {migrations.Count} pending migrations: {string.Join(", ", migrations)}");
+        }
+        else
+        {
+            Log.Information("No pending migrations found");
+        }
+        
+        // Check connection before attempting migration
+        try
+        {
+            Log.Information("Testing database connection...");
+            dbContext.Database.OpenConnection();
+            dbContext.Database.CloseConnection();
+            Log.Information("Database connection test successful");
+        }
+        catch (Exception ex)
+        {
+            Log.Error(ex, "Failed to connect to database");
+            
+            if (ex is Npgsql.PostgresException pgEx)
+            {
+                Log.Error("PostgreSQL error: {ErrorMessage}, Code: {ErrorCode}, Detail: {ErrorDetail}", 
+                    pgEx.MessageText, pgEx.SqlState, pgEx.Detail);
+            }
+            
+            throw;
+        }
+        
+        // Apply migrations
         dbContext.Database.Migrate();
         Log.Information("Database migration completed successfully");
     }
     catch (Exception ex)
     {
         Log.Error(ex, "An error occurred while migrating the database");
+        
+        // More detailed PostgreSQL error handling
+        if (ex.InnerException != null)
+        {
+            Log.Error(ex.InnerException, "Inner exception details");
+            
+            // Check for PostgreSQL-specific errors
+            if (ex.InnerException is Npgsql.PostgresException pgEx)
+            {
+                Log.Error("PostgreSQL error: {ErrorMessage}, Code: {ErrorCode}, Detail: {ErrorDetail}", 
+                    pgEx.MessageText, pgEx.SqlState, pgEx.Detail);
+            }
+        }
+        
         throw;
     }
 }

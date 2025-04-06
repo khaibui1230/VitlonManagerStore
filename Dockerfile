@@ -15,9 +15,18 @@ FROM mcr.microsoft.com/dotnet/aspnet:8.0 AS final
 WORKDIR /app
 COPY --from=publish /app/publish .
 
+# Create startup script
+RUN echo '#!/bin/bash \n\
+echo "Starting application with database handling..." \n\
+echo "Waiting for database to become available..." \n\
+sleep 5 \n\
+echo "Starting application..." \n\
+dotnet QuanVitLonManager.dll \n\
+' > /app/startup.sh && chmod +x /app/startup.sh
+
 # Set environment variables
 ENV ASPNETCORE_URLS=http://+:80
 ENV ASPNETCORE_ENVIRONMENT=Production
 
-# Run the application
-ENTRYPOINT ["dotnet", "QuanVitLonManager.dll"] 
+# Run the startup script
+ENTRYPOINT ["/bin/bash", "/app/startup.sh"] 
