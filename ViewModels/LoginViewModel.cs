@@ -4,16 +4,16 @@ namespace QuanVitLonManager.ViewModels
 {
     public class LoginViewModel
     {
-        [Required(ErrorMessage = "Vui lòng nhập tên đăng nhập")]
+        [Required(ErrorMessage = "Tên đăng nhập là bắt buộc")]
         [Display(Name = "Tên đăng nhập")]
-        public string UserName { get; set; } = string.Empty;
+        public string UserName { get; set; }
 
-        [Required(ErrorMessage = "Vui lòng nhập mật khẩu")]
+        [Required(ErrorMessage = "Mật khẩu là bắt buộc")]
         [DataType(DataType.Password)]
         [Display(Name = "Mật khẩu")]
-        public string Password { get; set; } = string.Empty;
+        public string Password { get; set; }
 
-        [Display(Name = "Ghi nhớ đăng nhập")]
+        [Display(Name = "Nhớ mật khẩu?")]
         public bool RememberMe { get; set; }
     }
 }
