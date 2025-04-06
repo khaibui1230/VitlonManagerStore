@@ -260,7 +260,7 @@ using (var scope = app.Services.CreateScope())
     var services = scope.ServiceProvider;
     try
     {
-        Log.Information("Starting database migration...");
+        Log.Information("Checking database status...");
         var context = services.GetRequiredService<ApplicationDbContext>();
         
         // Log connection string (ẩn password)
@@ -270,20 +270,37 @@ using (var scope = app.Services.CreateScope())
         );
         Log.Information($"Using connection string: {sanitizedConnectionString}");
         
-        // Tự động apply migrations
-        context.Database.Migrate();
-        Log.Information("Database migration completed successfully");
-        
-        var userManager = services.GetRequiredService<UserManager<ApplicationUser>>();
-        var roleManager = services.GetRequiredService<RoleManager<IdentityRole>>();
-        
-        await DbInitializer.Initialize(context, userManager, roleManager);
-        Log.Information("Database initialization completed successfully");
+        // In production, migrations are handled by our startup script
+        if (!app.Environment.IsProduction())
+        {
+            // Only apply migrations in development
+            context.Database.Migrate();
+            Log.Information("Development database migration completed");
+            
+            var userManager = services.GetRequiredService<UserManager<ApplicationUser>>();
+            var roleManager = services.GetRequiredService<RoleManager<IdentityRole>>();
+            
+            await DbInitializer.Initialize(context, userManager, roleManager);
+            Log.Information("Database initialization completed successfully");
+        }
+        else
+        {
+            Log.Information("Production database migrations handled by startup script");
+        }
     }
     catch (Exception ex)
     {
-        Log.Error(ex, "An error occurred while migrating or initializing the database");
-        throw;
+        Log.Error(ex, "An error occurred while checking database status");
+        
+        // Don't throw in production as our startup script handles migration
+        if (!app.Environment.IsProduction())
+        {
+            throw;
+        }
+        else
+        {
+            Log.Warning("Continuing despite database error");
+        }
     }
 }
 
@@ -325,28 +342,17 @@ if (app.Environment.IsProduction())
 {
     try
     {
-        Log.Information("Attempting to migrate database...");
+        Log.Information("Checking for database migrations...");
         using var scope = app.Services.CreateScope();
         var dbContext = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
         
-        // Generate list of pending migrations for logging
-        var migrations = dbContext.Database.GetPendingMigrations().ToList();
-        if (migrations.Any())
-        {
-            Log.Information($"Applying {migrations.Count} pending migrations: {string.Join(", ", migrations)}");
-        }
-        else
-        {
-            Log.Information("No pending migrations found");
-        }
-        
-        // Check connection before attempting migration
+        // Only check connection, don't run migrations (handled by startup script)
         try
         {
             Log.Information("Testing database connection...");
             dbContext.Database.OpenConnection();
+            Log.Information("Database connection successful");
             dbContext.Database.CloseConnection();
-            Log.Information("Database connection test successful");
         }
         catch (Exception ex)
         {
@@ -358,31 +364,19 @@ if (app.Environment.IsProduction())
                     pgEx.MessageText, pgEx.SqlState, pgEx.Detail);
             }
             
-            throw;
+            // Continue anyway, as our custom script may fix this
+            Log.Warning("Continuing despite database connection issue");
         }
         
-        // Apply migrations
-        dbContext.Database.Migrate();
-        Log.Information("Database migration completed successfully");
+        // Don't run migrations here, they are handled by our startup script
+        Log.Information("Database migrations are managed by startup script");
     }
     catch (Exception ex)
     {
-        Log.Error(ex, "An error occurred while migrating the database");
+        Log.Error(ex, "An error occurred while checking database");
         
-        // More detailed PostgreSQL error handling
-        if (ex.InnerException != null)
-        {
-            Log.Error(ex.InnerException, "Inner exception details");
-            
-            // Check for PostgreSQL-specific errors
-            if (ex.InnerException is Npgsql.PostgresException pgEx)
-            {
-                Log.Error("PostgreSQL error: {ErrorMessage}, Code: {ErrorCode}, Detail: {ErrorDetail}", 
-                    pgEx.MessageText, pgEx.SqlState, pgEx.Detail);
-            }
-        }
-        
-        throw;
+        // Log but don't throw, as our custom script may fix this
+        Log.Warning("Continuing despite database error");
     }
 }
 

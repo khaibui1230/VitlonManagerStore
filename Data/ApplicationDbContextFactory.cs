@@ -9,13 +9,16 @@ namespace QuanVitLonManager.Data
         public ApplicationDbContext CreateDbContext(string[] args)
         {
             var configuration = new ConfigurationBuilder()
-                .SetBasePath(Directory.GetCurrentDirectory())
                 .AddJsonFile("appsettings.json")
+                .AddJsonFile("appsettings.Development.json", optional: true)
+                .AddEnvironmentVariables()
                 .Build();
 
             var optionsBuilder = new DbContextOptionsBuilder<ApplicationDbContext>();
-            var connectionString = configuration.GetConnectionString("DefaultConnection");
-            optionsBuilder.UseSqlServer(connectionString);
+            
+            // Always use PostgreSQL for migrations to ensure compatibility
+            optionsBuilder.UseNpgsql("Host=localhost;Database=vitlondb;Username=postgres;Password=postgres", 
+                o => o.MigrationsHistoryTable("__EFMigrationsHistory"));
 
             return new ApplicationDbContext(optionsBuilder.Options);
         }
