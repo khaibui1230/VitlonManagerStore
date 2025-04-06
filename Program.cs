@@ -14,6 +14,8 @@ using Microsoft.AspNetCore.Authentication.Google;
 using System.Text.Json;
 using System.Security.Claims;
 using Npgsql.EntityFrameworkCore.PostgreSQL;
+using Microsoft.Extensions.Diagnostics.HealthChecks;
+using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -38,33 +40,68 @@ if (builder.Environment.IsProduction())
     {
         // Lấy DATABASE_URL từ biến môi trường
         var databaseUrl = Environment.GetEnvironmentVariable("DATABASE_URL");
-        Log.Information($"Database URL: {databaseUrl}");
+        Log.Information("Checking database configuration...");
 
         if (!string.IsNullOrEmpty(databaseUrl))
         {
-            // Parse connection string từ DATABASE_URL của PostgreSQL
-            // Format: postgres://username:password@host:port/database
-            databaseUrl = databaseUrl.Replace("postgres://", string.Empty);
-            var pgUserPass = databaseUrl.Split("@")[0];
-            var pgHostDb = databaseUrl.Split("@")[1];
-            var pgUserName = pgUserPass.Split(":")[0];
-            var pgPassword = pgUserPass.Split(":")[1];
-            var pgHost = pgHostDb.Split("/")[0];
-            var pgDb = pgHostDb.Split("/")[1];
-            var pgPort = pgHost.Contains(":") ? pgHost.Split(":")[1] : "5432";
-            pgHost = pgHost.Split(":")[0];
+            // Kiểm tra xem có phải là Postgres URL không
+            if (databaseUrl.StartsWith("postgres://") || databaseUrl.StartsWith("postgresql://"))
+            {
+                try
+                {
+                    // Parse connection string từ DATABASE_URL
+                    databaseUrl = databaseUrl.Replace("postgres://", "").Replace("postgresql://", "");
+                    
+                    // Kiểm tra format hợp lệ
+                    if (databaseUrl.Contains("@") && databaseUrl.Contains("/"))
+                    {
+                        var pgUserPass = databaseUrl.Split("@")[0];
+                        var pgHostDb = databaseUrl.Split("@")[1];
+                        
+                        if (pgUserPass.Contains(":") && pgHostDb.Contains("/"))
+                        {
+                            var pgUserName = pgUserPass.Split(":")[0];
+                            var pgPassword = pgUserPass.Split(":")[1];
+                            var pgHost = pgHostDb.Split("/")[0];
+                            var pgDb = pgHostDb.Split("/")[1];
+                            var pgPort = pgHost.Contains(":") ? pgHost.Split(":")[1] : "5432";
+                            pgHost = pgHost.Split(":")[0];
 
-            connectionString = $"Host={pgHost};Port={pgPort};Database={pgDb};Username={pgUserName};Password={pgPassword};SSL Mode=Require;Trust Server Certificate=true";
-            Log.Information("Successfully parsed database connection string");
+                            connectionString = $"Host={pgHost};Port={pgPort};Database={pgDb};Username={pgUserName};Password={pgPassword};SSL Mode=Require;Trust Server Certificate=true";
+                            Log.Information("Successfully configured PostgreSQL connection");
+                        }
+                        else
+                        {
+                            throw new Exception("Invalid database URL format");
+                        }
+                    }
+                    else
+                    {
+                        throw new Exception("Invalid database URL format");
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Log.Error(ex, "Error parsing PostgreSQL URL");
+                    throw;
+                }
+            }
+            else
+            {
+                // Nếu không phải Postgres URL, sử dụng trực tiếp
+                Log.Information("Using provided connection string directly");
+                connectionString = databaseUrl;
+            }
         }
         else
         {
-            Log.Warning("DATABASE_URL environment variable is empty");
+            Log.Warning("No database connection string provided");
+            throw new Exception("Database connection string is required");
         }
     }
     catch (Exception ex)
     {
-        Log.Error(ex, "Error parsing DATABASE_URL");
+        Log.Error(ex, "Database configuration error");
         throw;
     }
 }
@@ -73,7 +110,7 @@ builder.Services.AddDbContext<ApplicationDbContext>(options =>
 {
     if (builder.Environment.IsProduction())
     {
-        Log.Information("Configuring PostgreSQL for production");
+        Log.Information("Configuring production database...");
         options.UseNpgsql(connectionString, npgsqlOptions =>
         {
             npgsqlOptions.EnableRetryOnFailure(
@@ -84,7 +121,7 @@ builder.Services.AddDbContext<ApplicationDbContext>(options =>
     }
     else
     {
-        Log.Information("Configuring SQL Server for development");
+        Log.Information("Configuring development database...");
         options.UseSqlServer(connectionString);
     }
 });
@@ -162,6 +199,9 @@ builder.Services.AddSession(options =>
     options.Cookie.HttpOnly = true;
     options.Cookie.IsEssential = true;
 });
+
+// Add basic health checks
+builder.Services.AddHealthChecks();
 
 var app = builder.Build();
 
@@ -242,6 +282,26 @@ app.UseStatusCodePages(async context =>
     else if (response.StatusCode == 500)
     {
         response.Redirect("/Home/Error?code=500");
+    }
+});
+
+// Add health check endpoint with basic configuration
+app.MapHealthChecks("/health", new HealthCheckOptions
+{
+    ResponseWriter = async (context, report) =>
+    {
+        context.Response.ContentType = "application/json";
+        var result = System.Text.Json.JsonSerializer.Serialize(new
+        {
+            status = report.Status.ToString(),
+            checks = report.Entries.Select(entry => new
+            {
+                name = entry.Key,
+                status = entry.Value.Status.ToString(),
+                description = entry.Value.Description
+            })
+        });
+        await context.Response.WriteAsync(result);
     }
 });
 
