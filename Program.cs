@@ -16,6 +16,7 @@ using System.Security.Claims;
 using Npgsql.EntityFrameworkCore.PostgreSQL;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
+using Npgsql;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -38,70 +39,43 @@ if (builder.Environment.IsProduction())
 {
     try
     {
-        // Lấy DATABASE_URL từ biến môi trường
         var databaseUrl = Environment.GetEnvironmentVariable("DATABASE_URL");
         Log.Information("Checking database configuration...");
-
-        if (!string.IsNullOrEmpty(databaseUrl))
+        
+        if (string.IsNullOrEmpty(databaseUrl))
         {
-            // Kiểm tra xem có phải là Postgres URL không
-            if (databaseUrl.StartsWith("postgres://") || databaseUrl.StartsWith("postgresql://"))
-            {
-                try
-                {
-                    // Parse connection string từ DATABASE_URL
-                    databaseUrl = databaseUrl.Replace("postgres://", "").Replace("postgresql://", "");
-                    
-                    // Kiểm tra format hợp lệ
-                    if (databaseUrl.Contains("@") && databaseUrl.Contains("/"))
-                    {
-                        var pgUserPass = databaseUrl.Split("@")[0];
-                        var pgHostDb = databaseUrl.Split("@")[1];
-                        
-                        if (pgUserPass.Contains(":") && pgHostDb.Contains("/"))
-                        {
-                            var pgUserName = pgUserPass.Split(":")[0];
-                            var pgPassword = pgUserPass.Split(":")[1];
-                            var pgHost = pgHostDb.Split("/")[0];
-                            var pgDb = pgHostDb.Split("/")[1];
-                            var pgPort = pgHost.Contains(":") ? pgHost.Split(":")[1] : "5432";
-                            pgHost = pgHost.Split(":")[0];
+            Log.Error("DATABASE_URL environment variable is not set");
+            throw new InvalidOperationException("DATABASE_URL environment variable is required in production");
+        }
 
-                            connectionString = $"Host={pgHost};Port={pgPort};Database={pgDb};Username={pgUserName};Password={pgPassword};SSL Mode=Require;Trust Server Certificate=true";
-                            Log.Information("Successfully configured PostgreSQL connection");
-                        }
-                        else
-                        {
-                            throw new Exception("Invalid database URL format");
-                        }
-                    }
-                    else
-                    {
-                        throw new Exception("Invalid database URL format");
-                    }
-                }
-                catch (Exception ex)
-                {
-                    Log.Error(ex, "Error parsing PostgreSQL URL");
-                    throw;
-                }
-            }
-            else
-            {
-                // Nếu không phải Postgres URL, sử dụng trực tiếp
-                Log.Information("Using provided connection string directly");
-                connectionString = databaseUrl;
-            }
-        }
-        else
+        Log.Information("Database URL format: {DatabaseUrlFormat}", 
+            databaseUrl.Substring(0, Math.Min(10, databaseUrl.Length)) + "...");
+
+        // Convert Postgres URL to Npgsql connection string
+        var uri = new Uri(databaseUrl);
+        var userInfo = uri.UserInfo.Split(':');
+        
+        var npgsqlBuilder = new NpgsqlConnectionStringBuilder
         {
-            Log.Warning("No database connection string provided");
-            throw new Exception("Database connection string is required");
-        }
+            Host = uri.Host,
+            Port = uri.Port > 0 ? uri.Port : 5432,
+            Database = uri.AbsolutePath.TrimStart('/'),
+            Username = userInfo[0],
+            Password = userInfo[1],
+            SslMode = SslMode.Require,
+            TrustServerCertificate = true,
+            Pooling = true,
+            MinPoolSize = 0,
+            MaxPoolSize = 10,
+            ConnectionIdleLifetime = 300
+        };
+
+        connectionString = npgsqlBuilder.ToString();
+        Log.Information("Successfully built Npgsql connection string");
     }
     catch (Exception ex)
     {
-        Log.Error(ex, "Database configuration error");
+        Log.Error(ex, "Failed to configure database connection string");
         throw;
     }
 }
@@ -110,7 +84,7 @@ builder.Services.AddDbContext<ApplicationDbContext>(options =>
 {
     if (builder.Environment.IsProduction())
     {
-        Log.Information("Configuring production database...");
+        Log.Information("Configuring production database with Npgsql...");
         options.UseNpgsql(connectionString, npgsqlOptions =>
         {
             npgsqlOptions.EnableRetryOnFailure(
@@ -304,5 +278,22 @@ app.MapHealthChecks("/health", new HealthCheckOptions
         await context.Response.WriteAsync(result);
     }
 });
+
+if (app.Environment.IsProduction())
+{
+    try
+    {
+        Log.Information("Attempting to migrate database...");
+        using var scope = app.Services.CreateScope();
+        var dbContext = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+        dbContext.Database.Migrate();
+        Log.Information("Database migration completed successfully");
+    }
+    catch (Exception ex)
+    {
+        Log.Error(ex, "An error occurred while migrating the database");
+        throw;
+    }
+}
 
 app.Run();
