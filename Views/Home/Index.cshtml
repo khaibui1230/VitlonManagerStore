@@ -106,32 +106,81 @@
     <div class="container">
         <h2 class="section-title mb-4">SẢN PHẨM NỔI BẬT</h2>
         
-        <div class="row">
-            @foreach (var category in Model)
-            {
-                <div class="col-6 col-md-3 mb-4">
-                    <div class="category-card">
-                        <a href="/Menu/Category/@category.Id" class="text-decoration-none">
-                            <div class="card h-100">
-                                <div class="card-img-container">
-                                    <img src="~/images/categories/default.jpg" class="card-img-top" alt="@category.Name">
-                                    <div class="overlay">
-                                        <span class="btn btn-sm btn-light">Xem ngay</span>
+        @if (Model != null && Model.Any())
+        {
+            <div class="row">
+                @foreach (var category in Model)
+                {
+                    <div class="col-6 col-md-3 mb-4">
+                        <div class="category-card">
+                            <a href="/Menu/Category/@category.Id" class="text-decoration-none">
+                                <div class="card h-100">
+                                    <div class="card-img-container">
+                                        <img src="~/images/categories/default.jpg" class="card-img-top" alt="@category.Name">
+                                        <div class="overlay">
+                                            <span class="btn btn-sm btn-light">Xem ngay</span>
+                                        </div>
+                                    </div>
+                                    <div class="card-body text-center">
+                                        <h5 class="card-title">@category.Name</h5>
+                                        <p class="card-text">@category.Description</p>
                                     </div>
                                 </div>
-                                <div class="card-body text-center">
-                                    <h5 class="card-title">@category.Name</h5>
-                                    <p class="card-text">@category.Description</p>
+                            </a>
+                        </div>
+                    </div>
+                }
+            }
+            else
+            {
+                <div class="alert alert-info">
+                    Đang tải danh mục sản phẩm. Vui lòng làm mới trang sau vài giây!
+                </div>
+                
+                <!-- Static categories for display when database is not available -->
+                <div class="row">
+                    <div class="col-6 col-md-3 mb-4">
+                        <div class="category-card">
+                            <a href="/Menu" class="text-decoration-none">
+                                <div class="card h-100">
+                                    <div class="card-img-container">
+                                        <img src="~/images/categories/default.jpg" class="card-img-top" alt="Món chính">
+                                        <div class="overlay">
+                                            <span class="btn btn-sm btn-light">Xem ngay</span>
+                                        </div>
+                                    </div>
+                                    <div class="card-body text-center">
+                                        <h5 class="card-title">Món chính</h5>
+                                        <p class="card-text">Các món chính trong thực đơn</p>
+                                    </div>
                                 </div>
-                            </div>
-                        </a>
+                            </a>
+                        </div>
+                    </div>
+                    <div class="col-6 col-md-3 mb-4">
+                        <div class="category-card">
+                            <a href="/Menu" class="text-decoration-none">
+                                <div class="card h-100">
+                                    <div class="card-img-container">
+                                        <img src="~/images/categories/default.jpg" class="card-img-top" alt="Món phụ">
+                                        <div class="overlay">
+                                            <span class="btn btn-sm btn-light">Xem ngay</span>
+                                        </div>
+                                    </div>
+                                    <div class="card-body text-center">
+                                        <h5 class="card-title">Món phụ</h5>
+                                        <p class="card-text">Các món ăn kèm</p>
+                                    </div>
+                                </div>
+                            </a>
+                        </div>
                     </div>
                 </div>
             }
-        </div>
-        
-        <div class="text-center mt-4">
-            <a href="@Url.Action("Index", "Menu")" class="btn btn-primary btn-lg">Xem tất cả sản phẩm</a>
+            
+            <div class="text-center mt-4">
+                <a href="@Url.Action("Index", "Menu")" class="btn btn-primary btn-lg">Xem tất cả sản phẩm</a>
+            </div>
         </div>
     </div>
 </section>

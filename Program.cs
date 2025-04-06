@@ -270,6 +270,57 @@ using (var scope = app.Services.CreateScope())
         );
         Log.Information($"Using connection string: {sanitizedConnectionString}");
         
+        // Ensure database exists
+        try {
+            Log.Information("Checking if database exists...");
+            bool exists = await context.Database.CanConnectAsync();
+            
+            if (exists) {
+                Log.Information("Database exists. Checking tables...");
+                
+                // Force create tables if they don't exist
+                try {
+                    Log.Information("Checking if Categories table exists...");
+                    var categoriesCount = await context.Categories.CountAsync();
+                    Log.Information($"Categories table exists with {categoriesCount} records");
+                }
+                catch (PostgresException pgEx) when (pgEx.SqlState == "42P01") // relation does not exist
+                {
+                    Log.Warning("Categories table does not exist! Creating tables manually...");
+                    
+                    // Execute create tables script directly
+                    try {
+                        await context.Database.ExecuteSqlRawAsync(@"
+CREATE TABLE IF NOT EXISTS ""Categories"" (
+    ""Id"" serial NOT NULL,
+    ""Name"" text NOT NULL,
+    ""Description"" text NULL,
+    ""ImageUrl"" text NULL,
+    ""DisplayOrder"" integer NOT NULL DEFAULT 0,
+    ""IsActive"" boolean NOT NULL DEFAULT true,
+    CONSTRAINT ""PK_Categories"" PRIMARY KEY (""Id"")
+);
+
+INSERT INTO ""Categories"" (""Name"", ""Description"", ""DisplayOrder"", ""IsActive"")
+VALUES 
+('Món chính', 'Các món chính trong thực đơn', 1, true),
+('Món phụ', 'Các món ăn kèm', 2, true), 
+('Đồ uống', 'Các loại đồ uống', 3, true),
+('Tráng miệng', 'Các món tráng miệng', 4, true)
+ON CONFLICT DO NOTHING;
+");
+                        Log.Information("Successfully created Categories table");
+                    }
+                    catch (Exception ex) {
+                        Log.Error(ex, "Error creating Categories table");
+                    }
+                }
+            }
+        }
+        catch (Exception ex) {
+            Log.Error(ex, "Error checking database");
+        }
+        
         // In production, migrations are handled by our startup script
         if (!app.Environment.IsProduction())
         {

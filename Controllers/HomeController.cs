@@ -5,6 +5,7 @@ using System.Diagnostics;
 using Microsoft.EntityFrameworkCore;
 using QuanVitLonManager.ViewModels;  // Add this line at the top with other using statements
 using Microsoft.AspNetCore.Authorization;
+using Npgsql;
 
 namespace QuanVitLonManager.Controllers
 {
@@ -24,21 +25,60 @@ namespace QuanVitLonManager.Controllers
             try
             {
                 _logger.LogInformation("Loading categories from database");
-                var categories = await _context.Categories
-                    .Include(c => c.MenuItems)
-                    .ToListAsync();
                 
-                _logger.LogInformation($"Successfully loaded {categories.Count} categories");
-                return View(categories);
+                // Try to create the Categories table if it doesn't exist
+                try
+                {
+                    var categories = await _context.Categories
+                        .Include(c => c.MenuItems)
+                        .ToListAsync();
+                    
+                    _logger.LogInformation($"Successfully loaded {categories.Count} categories");
+                    return View(categories);
+                }
+                catch (PostgresException pgEx) when (pgEx.SqlState == "42P01") // relation does not exist
+                {
+                    _logger.LogWarning("Categories table does not exist! Creating it...");
+                    
+                    try 
+                    {
+                        await _context.Database.ExecuteSqlRawAsync(@"
+CREATE TABLE IF NOT EXISTS ""Categories"" (
+    ""Id"" serial NOT NULL,
+    ""Name"" text NOT NULL,
+    ""Description"" text NULL,
+    ""ImageUrl"" text NULL,
+    ""DisplayOrder"" integer NOT NULL DEFAULT 0,
+    ""IsActive"" boolean NOT NULL DEFAULT true,
+    CONSTRAINT ""PK_Categories"" PRIMARY KEY (""Id"")
+);
+
+INSERT INTO ""Categories"" (""Name"", ""Description"", ""DisplayOrder"", ""IsActive"")
+VALUES 
+('Món chính', 'Các món chính trong thực đơn', 1, true),
+('Món phụ', 'Các món ăn kèm', 2, true), 
+('Đồ uống', 'Các loại đồ uống', 3, true),
+('Tráng miệng', 'Các món tráng miệng', 4, true)
+ON CONFLICT DO NOTHING;
+");
+                        _logger.LogInformation("Successfully created Categories table, reloading data");
+                        
+                        // Try loading again
+                        var categories = await _context.Categories.ToListAsync();
+                        return View(categories);
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogError(ex, "Error creating Categories table");
+                        throw;
+                    }
+                }
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error occurred while loading categories");
-                return View("Error", new ErrorViewModel 
-                { 
-                    RequestId = Activity.Current?.Id ?? HttpContext.TraceIdentifier,
-                    ErrorMessage = "Không thể tải danh mục. Vui lòng thử lại sau."
-                });
+                // Return default data with no categories when error occurs
+                return View(new List<Category>());
             }
         }
 
