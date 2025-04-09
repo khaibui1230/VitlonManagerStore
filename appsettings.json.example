@@ -1,1 +1,31 @@
- 
+{
+  "ConnectionStrings": {
+    "DefaultConnection": "Server=YOUR_SERVER;Database=YOUR_DATABASE;User Id=YOUR_USERNAME;Password=YOUR_PASSWORD;"
+  },
+  "Logging": {
+    "LogLevel": {
+      "Default": "Information",
+      "Microsoft.AspNetCore": "Warning"
+    }
+  },
+  "AllowedHosts": "*",
+  "Authentication": {
+    "Google": {
+      "ClientId": "YOUR_GOOGLE_CLIENT_ID",
+      "ClientSecret": "YOUR_GOOGLE_CLIENT_SECRET"
+    }
+  },
+  "EmailSettings": {
+    "SmtpServer": "smtp.example.com",
+    "SmtpPort": 587,
+    "SmtpUsername": "your-email@example.com",
+    "SmtpPassword": "YOUR_SMTP_PASSWORD",
+    "SenderEmail": "your-email@example.com",
+    "SenderName": "Your Name"
+  },
+  "JWT": {
+    "ValidAudience": "YOUR_AUDIENCE",
+    "ValidIssuer": "YOUR_ISSUER",
+    "Secret": "YOUR_JWT_SECRET_KEY"
+  }
+}  
