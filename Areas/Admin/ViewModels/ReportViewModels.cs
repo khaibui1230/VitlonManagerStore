@@ -1,6 +1,7 @@
 using QuanVitLonManager.Models;
 using System;
 using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations;
 
 namespace QuanVitLonManager.Areas.Admin.ViewModels
 {
@@ -55,10 +56,19 @@ namespace QuanVitLonManager.Areas.Admin.ViewModels
 
     public class CustomerReportItem
     {
+        [Required]
         public required string CustomerId { get; set; }
+        
+        [Required]
         public required string CustomerName { get; set; }
+        
+        [Required]
         public required string PhoneNumber { get; set; }
+        
+        [Required]
         public int OrderCount { get; set; }
+        
+        [Required]
         public decimal TotalRevenue { get; set; }
     }
 
@@ -91,7 +101,8 @@ namespace QuanVitLonManager.Areas.Admin.ViewModels
     {
         public OrderStatus Status { get; set; }
         public int Count { get; set; }
-        public decimal TotalAmount { get; set; }
+        [Required]
+        public required decimal TotalAmount { get; set; }
     }
 
     public class TopSellingItemViewModel

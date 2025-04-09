@@ -12,7 +12,7 @@ using Microsoft.AspNetCore.Http;
 namespace QuanVitLonManager.Areas.Admin.Controllers
 {
     [Area("Admin")]
-    [Authorize(Roles = "QuanLy")]
+    [Authorize(Roles = "Admin")]
     public class MenuManagementController : Controller
     {
         private readonly ApplicationDbContext _context;
@@ -38,47 +38,43 @@ namespace QuanVitLonManager.Areas.Admin.Controllers
             var categories = await _context.Categories.ToListAsync();
             ViewBag.Categories = new SelectList(categories, "Id", "Name");
 
-            var menuItems = from m in _context.MenuItems.Include(m => m.Category)
-                          select m;
+            // Lấy tất cả dữ liệu
+            var menuItems = await _context.MenuItems
+                .Include(m => m.Category)
+                .ToListAsync();
 
-            // Áp dụng filter
+            // Áp dụng filter trong bộ nhớ
             if (!string.IsNullOrEmpty(searchString))
             {
-                menuItems = menuItems.Where(m => m.Name.Contains(searchString) || 
-                                               m.Description.Contains(searchString));
+                searchString = searchString.ToLower();
+                menuItems = menuItems.Where(m => 
+                    m.Name.ToLower().Contains(searchString) || 
+                    (m.Description != null && m.Description.ToLower().Contains(searchString)))
+                    .ToList();
             }
 
             if (categoryId.HasValue)
             {
-                menuItems = menuItems.Where(m => m.CategoryId == categoryId.Value);
+                menuItems = menuItems.Where(m => m.CategoryId == categoryId.Value).ToList();
             }
 
-            // Áp dụng sắp xếp
-            switch (sortOrder)
+            // Áp dụng sắp xếp trong bộ nhớ
+            menuItems = sortOrder switch
             {
-                case "name_desc":
-                    menuItems = menuItems.OrderByDescending(m => m.Name);
-                    break;
-                case "price":
-                    menuItems = menuItems.OrderBy(m => m.Price);
-                    break;
-                case "price_desc":
-                    menuItems = menuItems.OrderByDescending(m => m.Price);
-                    break;
-                case "category":
-                    menuItems = menuItems.OrderBy(m => m.Category.Name);
-                    break;
-                case "category_desc":
-                    menuItems = menuItems.OrderByDescending(m => m.Category.Name);
-                    break;
-                default:
-                    menuItems = menuItems.OrderBy(m => m.Name);
-                    break;
-            }
+                "name_desc" => menuItems.OrderByDescending(m => m.Name).ToList(),
+                "price" => menuItems.OrderBy(m => m.Price).ToList(),
+                "price_desc" => menuItems.OrderByDescending(m => m.Price).ToList(),
+                "category" => menuItems.OrderBy(m => m.Category.Name).ToList(),
+                "category_desc" => menuItems.OrderByDescending(m => m.Category.Name).ToList(),
+                _ => menuItems.OrderBy(m => m.Name).ToList()
+            };
 
-            // Phân trang
-            var count = await menuItems.CountAsync();
-            var items = await menuItems.Skip((page - 1) * pageSize).Take(pageSize).ToListAsync();
+            // Tính toán phân trang
+            var count = menuItems.Count;
+            var items = menuItems
+                .Skip((page - 1) * pageSize)
+                .Take(pageSize)
+                .ToList();
 
             ViewData["TotalPages"] = (int)Math.Ceiling(count / (double)pageSize);
             ViewData["CurrentPage"] = page;

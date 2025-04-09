@@ -4,185 +4,337 @@
     ViewData["Title"] = Model.Name;
 }
 
-<div class="container mt-5">
+<div class="container menu-detail">
+    <div class="row mb-4">
+        <div class="col">
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a asp-controller="Home" asp-action="Index">Trang chủ</a></li>
+                    <li class="breadcrumb-item"><a asp-action="Index">Thực đơn</a></li>
+                    <li class="breadcrumb-item active" aria-current="page">@Model.Name</li>
+                </ol>
+            </nav>
+        </div>
+    </div>
+
     <div class="row">
-        <div class="col-md-5">
-            @if (!string.IsNullOrEmpty(Model.ImageUrl))
+        <div class="col-lg-6 mb-4 mb-lg-0">
+            <div class="product-gallery">
+                <div class="product-gallery-main zoom-container">
+                    @if (!string.IsNullOrEmpty(Model.ImageUrl))
+                    {
+                        <img src="@Model.ImageUrl" alt="@Model.Name" id="mainImage" class="img-fluid">
+                    }
+                    else
+                    {
+                        <div class="bg-light d-flex align-items-center justify-content-center" style="height: 300px;">
+                            <i class="fas fa-utensils fa-5x text-secondary"></i>
+                        </div>
+                    }
+                </div>
+                
+                @if (ViewBag.GalleryImages != null && ViewBag.GalleryImages.Count > 0)
+                {
+                    <div class="product-gallery-thumbs">
+                        <div class="product-gallery-thumb active" data-src="@Model.ImageUrl">
+                            <img src="@Model.ImageUrl" alt="@Model.Name">
+                        </div>
+                        @foreach (var image in ViewBag.GalleryImages)
+                        {
+                            <div class="product-gallery-thumb" data-src="@image">
+                                <img src="@image" alt="@Model.Name">
+                            </div>
+                        }
+                    </div>
+                }
+            </div>
+        </div>
+        <div class="col-lg-6 menu-detail-content">
+            <h1>@Model.Name</h1>
+            
+            @if (Model.DiscountPercentage > 0)
             {
-                <img src="@Model.ImageUrl" alt="@Model.Name" class="img-fluid rounded product-detail-img">
+                <div class="price-discount mb-2">
+                    <span class="original-price">@Model.OriginalPrice.ToString("N0") VNĐ</span>
+                    <span class="discount-badge">-@Model.DiscountPercentage%</span>
+                </div>
+                <div class="price">@Model.CurrentPrice.ToString("N0") VNĐ</div>
             }
             else
             {
-                <img src="/images/default-food.jpg" alt="@Model.Name" class="img-fluid rounded product-detail-img">
-            }
-        </div>
-        <div class="col-md-7">
-            <h1 class="mb-3">@Model.Name</h1>
-            
-            @if (!string.IsNullOrEmpty(Model.Description))
-            {
-                <p class="lead mb-4">@Model.Description</p>
+                <div class="price">@Model.Price.ToString("N0") VNĐ</div>
             }
             
-            <div class="mb-4">
-                @if (Model.DiscountPercentage > 0)
-                {
-                    <span class="h4 text-danger me-2">@Model.Price.ToString("N0") đ</span>
-                    <span class="text-decoration-line-through text-muted">@Model.OriginalPrice.ToString("N0") đ</span>
-                    <span class="badge bg-danger ms-2">-@Model.DiscountPercentage%</span>
-                }
-                else
-                {
-                    <span class="h4">@Model.Price.ToString("N0") đ</span>
-                }
-            </div>
+            <p class="description">@Model.Description</p>
+            
+            <form asp-controller="Cart" asp-action="AddToCart" method="post" class="d-flex flex-column flex-sm-row align-items-start align-items-sm-center mb-4">
+                <input type="hidden" name="menuItemId" value="@Model.Id" />
+                <div class="input-group me-sm-3 mb-3 mb-sm-0" style="width: 150px;">
+                    <button class="btn btn-outline-secondary" type="button" id="decreaseQuantity">-</button>
+                    <input type="number" class="form-control text-center" name="quantity" id="quantity" value="1" min="1" max="99">
+                    <button class="btn btn-outline-secondary" type="button" id="increaseQuantity">+</button>
+                </div>
+                <button type="submit" class="btn btn-primary btn-lg w-100 w-sm-auto">
+                    <i class="fas fa-shopping-cart me-2"></i> Thêm vào giỏ hàng
+                </button>
+            </form>
             
             @if (!string.IsNullOrEmpty(Model.DetailedDescription))
             {
-                <div class="mb-4">
-                    <h5>Mô tả chi tiết</h5>
-                    <p>@Model.DetailedDescription</p>
+                <div class="menu-detail-section">
+                    <h4>Mô tả chi tiết</h4>
+                    <div class="detailed-description">
+                        @Html.Raw(Model.DetailedDescription.Replace("\n", "<br>"))
+                    </div>
                 </div>
             }
             
             @if (!string.IsNullOrEmpty(Model.Ingredients))
             {
-                <div class="mb-4">
-                    <h5>Nguyên liệu</h5>
-                    <p>@Model.Ingredients</p>
+                <div class="menu-detail-section">
+                    <h4>Nguyên liệu</h4>
+                    <ul class="ingredients-list">
+                        @foreach (var ingredient in Model.Ingredients.Split(','))
+                        {
+                            <li>@ingredient.Trim()</li>
+                        }
+                    </ul>
                 </div>
             }
             
-            <div class="d-flex align-items-center mb-4">
-                <div class="input-group me-3" style="width: 130px;">
-                    <button class="btn btn-outline-secondary" type="button" id="decreaseQuantity">-</button>
-                    <input type="number" class="form-control text-center" id="quantity" value="1" min="1">
-                    <button class="btn btn-outline-secondary" type="button" id="increaseQuantity">+</button>
+            @if (!string.IsNullOrEmpty(Model.PreparationInstructions))
+            {
+                <div class="menu-detail-section">
+                    <h4>Cách chế biến</h4>
+                    <ol class="preparation-steps">
+                        @foreach (var step in Model.PreparationInstructions.Split('.'))
+                        {
+                            if (!string.IsNullOrWhiteSpace(step))
+                            {
+                                <li>@step.Trim().</li>
+                            }
+                        }
+                    </ol>
                 </div>
-                <button class="btn btn-primary" id="addToCart" data-item-id="@Model.Id">
-                    <i class="fas fa-cart-plus me-2"></i>Thêm vào giỏ hàng
-                </button>
-            </div>
+            }
             
-            <div class="mt-4">
-                <a href="javascript:history.back()" class="btn btn-outline-secondary">
-                    <i class="fas fa-arrow-left me-2"></i>Quay lại
-                </a>
+            <div class="menu-detail-section">
+                <h4>Thông tin dinh dưỡng</h4>
+                <div class="nutrition-info">
+                    <div class="nutrition-item">
+                        <div class="value">@(Model.Calories.HasValue ? Model.Calories.Value.ToString() : "N/A")</div>
+                        <div class="label">Calories</div>
+                    </div>
+                    <div class="nutrition-item">
+                        <div class="value">@(Model.Protein.HasValue ? Model.Protein.Value.ToString() + "g" : "N/A")</div>
+                        <div class="label">Protein</div>
+                    </div>
+                    <div class="nutrition-item">
+                        <div class="value">@(Model.Fat.HasValue ? Model.Fat.Value.ToString() + "g" : "N/A")</div>
+                        <div class="label">Chất béo</div>
+                    </div>
+                    <div class="nutrition-item">
+                        <div class="value">@(Model.Carbs.HasValue ? Model.Carbs.Value.ToString() + "g" : "N/A")</div>
+                        <div class="label">Carbs</div>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
     
-    @if (Model.Reviews != null && Model.Reviews.Any())
-    {
-        <div class="row mt-5">
-            <div class="col-12">
-                <h3 class="mb-4">Đánh giá (@Model.Reviews.Count)</h3>
-                @foreach (var review in Model.Reviews.OrderByDescending(r => r.CreatedDate))
+    <!-- Reviews Section -->
+    <div class="reviews-section">
+        <h3 class="mb-4">Đánh giá từ khách hàng</h3>
+        
+        <div class="row">
+            <div class="col-lg-8 col-md-7 mb-4 mb-md-0">
+                @if (ViewBag.Reviews != null && ViewBag.Reviews.Count > 0)
                 {
-                    <div class="card mb-3">
-                        <div class="card-body">
-                            <div class="d-flex justify-content-between align-items-center mb-2">
-                                <h5 class="card-title mb-0">@review.User?.UserName</h5>
-                                <small class="text-muted">@review.CreatedDate.ToString("dd/MM/yyyy")</small>
+                    foreach (var review in ViewBag.Reviews)
+                    {
+                        <div class="review-card mb-3">
+                            <div class="review-header">
+                                <div class="review-avatar">
+                                    <img src="/images/user-avatar.jpg" alt="User">
+                                </div>
+                                <div class="review-info">
+                                    <h5>@review.UserName</h5>
+                                    <div class="review-date">@review.CreatedDate.ToString("dd/MM/yyyy")</div>
+                                    @if (review.IsVerifiedPurchase)
+                                    {
+                                        <span class="badge bg-success">Đã mua hàng</span>
+                                    }
+                                </div>
                             </div>
-                            <div class="mb-2">
+                            <div class="review-rating">
                                 @for (int i = 1; i <= 5; i++)
                                 {
                                     if (i <= review.Rating)
                                     {
-                                        <i class="fas fa-star text-warning"></i>
+                                        <i class="fas fa-star"></i>
                                     }
                                     else
                                     {
-                                        <i class="far fa-star text-warning"></i>
+                                        <i class="far fa-star"></i>
                                     }
                                 }
                             </div>
-                            <p class="card-text">@review.Comment</p>
-                        </div>
-                    </div>
-                }
-            </div>
-        </div>
-    }
-    
-    @if (ViewBag.RelatedItems != null && ViewBag.RelatedItems.Count > 0)
-    {
-        <div class="row mt-5">
-            <div class="col-12">
-                <h3 class="mb-4">Các món liên quan</h3>
-                <div class="row">
-                    @foreach (var item in ViewBag.RelatedItems)
-                    {
-                        <div class="col-md-3 mb-4">
-                            <div class="card h-100">
-                                @if (!string.IsNullOrEmpty(item.ImageUrl))
-                                {
-                                    <img src="@item.ImageUrl" class="card-img-top" alt="@item.Name" style="height: 180px; object-fit: cover;">
-                                }
-                                else
-                                {
-                                    <img src="/images/default-food.jpg" class="card-img-top" alt="@item.Name" style="height: 180px; object-fit: cover;">
-                                }
-                                <div class="card-body">
-                                    <h5 class="card-title">@item.Name</h5>
-                                    <p class="card-text text-truncate">@item.Description</p>
-                                    <div class="d-flex justify-content-between align-items-center">
-                                        <span class="fw-bold">@item.Price.ToString("N0") đ</span>
-                                        <a href="@Url.Action("Details", new { id = item.Id })" class="btn btn-sm btn-outline-primary">Chi tiết</a>
-                                    </div>
-                                </div>
+                            <div class="review-content">
+                                @review.Comment
                             </div>
                         </div>
                     }
+                }
+                else
+                {
+                    <div class="alert alert-info">
+                        Chưa có đánh giá nào cho món ăn này. Hãy là người đầu tiên đánh giá!
+                    </div>
+                }
+            </div>
+            
+            <div class="col-lg-4 col-md-5">
+                <div class="card sticky-top" style="top: 20px; z-index: 100;">
+                    <div class="card-body">
+                        <h5 class="card-title">Đánh giá món ăn này</h5>
+                        <form asp-controller="Review" asp-action="Create" method="post">
+                            <input type="hidden" name="MenuItemId" value="@Model.Id" />
+                            
+                            <div class="mb-3">
+                                <label class="form-label">Đánh giá của bạn</label>
+                                <div class="rating-input">
+                                    <div class="rating-stars">
+                                        @for (int i = 5; i >= 1; i--)
+                                        {
+                                            <input type="radio" id="star@i" name="Rating" value="@i" />
+                                            <label for="star@i"><i class="far fa-star"></i></label>
+                                        }
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label for="comment" class="form-label">Nhận xét</label>
+                                <textarea class="form-control" id="comment" name="Comment" rows="4" required></textarea>
+                            </div>
+                            
+                            <button type="submit" class="btn btn-primary w-100">Gửi đánh giá</button>
+                        </form>
+                    </div>
                 </div>
             </div>
         </div>
-    }
+    </div>
+    
+    <!-- Related Items -->
+    <div class="related-items">
+        <h3 class="mb-4">Món ăn liên quan</h3>
+        
+        <div class="row row-cols-1 row-cols-sm-2 row-cols-md-3 row-cols-lg-4 g-3">
+            @if (ViewBag.RelatedItems != null && ViewBag.RelatedItems.Count > 0)
+            {
+                @foreach (var item in ViewBag.RelatedItems)
+                {
+                    <div class="col menu-item">
+                        <div class="card h-100">
+                            @if (!string.IsNullOrEmpty(item.ImageUrl))
+                            {
+                                <img src="@item.ImageUrl" class="card-img-top" alt="@item.Name">
+                            }
+                            else
+                            {
+                                <div class="card-img-top bg-light d-flex align-items-center justify-content-center" style="height: 180px;">
+                                    <i class="fas fa-utensils fa-3x text-secondary"></i>
+                                </div>
+                            }
+                            <div class="card-body">
+                                <h5 class="card-title">@item.Name</h5>
+                                <p class="card-text">@item.Description</p>
+                                <div class="price">@item.Price.ToString("N0") VNĐ</div>
+                            </div>
+                            <div class="card-footer">
+                                <a href="@Url.Action("Details", new { id = item.Id })" class="btn btn-view w-100">Xem chi tiết</a>
+                            </div>
+                        </div>
+                    </div>
+                }
+            }
+            else
+            {
+                <div class="col-12">
+                    <div class="alert alert-info">
+                        Không tìm thấy món ăn liên quan.
+                    </div>
+                </div>
+            }
+        </div>
+    </div>
 </div>
 
 @section Scripts {
     <script>
         $(document).ready(function() {
-            $("#decreaseQuantity").click(function() {
-                var quantity = parseInt($("#quantity").val());
-                if (quantity > 1) {
-                    $("#quantity").val(quantity - 1);
+            // Quantity buttons
+            $('#increaseQuantity').click(function() {
+                var quantity = parseInt($('#quantity').val());
+                if (quantity < 99) {
+                    $('#quantity').val(quantity + 1);
                 }
             });
             
-            $("#increaseQuantity").click(function() {
-                var quantity = parseInt($("#quantity").val());
-                $("#quantity").val(quantity + 1);
+            $('#decreaseQuantity').click(function() {
+                var quantity = parseInt($('#quantity').val());
+                if (quantity > 1) {
+                    $('#quantity').val(quantity - 1);
+                }
             });
             
-            $("#addToCart").click(function() {
-                var itemId = $(this).data("item-id");
-                var quantity = parseInt($("#quantity").val());
-                
-                $.ajax({
-                    url: "/Cart/AddToCart",
-                    type: "POST",
-                    data: {
-                        itemId: itemId,
-                        quantity: quantity
-                    },
-                    success: function(response) {
-                        if (response.success) {
-                            toastr.success('Đã thêm vào giỏ hàng!');
-                            // Cập nhật số lượng giỏ hàng trên thanh điều hướng
-                            if (response.cartItemCount) {
-                                $(".cart-count").text(response.cartItemCount);
-                            }
-                        } else {
-                            toastr.error(response.message || 'Có lỗi xảy ra!');
-                        }
-                    },
-                    error: function() {
-                        toastr.error('Có lỗi xảy ra khi thêm vào giỏ hàng!');
+            // Rating stars
+            $('.rating-stars label').hover(
+                function() {
+                    $(this).prevAll('label').addBack().find('i').removeClass('far').addClass('fas');
+                    $(this).nextAll('label').find('i').removeClass('fas').addClass('far');
+                },
+                function() {
+                    var selectedRating = $('input[name="Rating"]:checked').val();
+                    if (selectedRating) {
+                        $('.rating-stars label').find('i').removeClass('fas').addClass('far');
+                        $('.rating-stars label').slice(5 - selectedRating).find('i').removeClass('far').addClass('fas');
+                    } else {
+                        $('.rating-stars label').find('i').removeClass('fas').addClass('far');
                     }
-                });
+                }
+            );
+            
+            $('.rating-stars input').change(function() {
+                var rating = $(this).val();
+                $('.rating-stars label').find('i').removeClass('fas').addClass('far');
+                $('.rating-stars label').slice(5 - rating).find('i').removeClass('far').addClass('fas');
             });
+            
+            // Gallery image switching
+            $('.product-gallery-thumb').click(function() {
+                var imgSrc = $(this).data('src');
+                $('#mainImage').attr('src', imgSrc);
+                $('.product-gallery-thumb').removeClass('active');
+                $(this).addClass('active');
+            });
+            
+            // Smooth scrolling for mobile
+            $('a[href^="#"]').on('click', function(e) {
+                e.preventDefault();
+                var target = $(this.hash);
+                if (target.length) {
+                    $('html, body').animate({
+                        scrollTop: target.offset().top - 70
+                    }, 500);
+                }
+            });
+            
+            // Fix for sticky elements on mobile
+            if (window.innerWidth < 768) {
+                $('.sticky-top').removeClass('sticky-top');
+            }
         });
     </script>
 }

@@ -23,6 +23,7 @@ namespace QuanVitLonManager.Models
         
         public int Quantity { get; set; }
         
+        [Column(TypeName = "nvarchar(max)")]
         public string? Notes { get; set; }
 
         [NotMapped]
@@ -37,6 +38,13 @@ namespace QuanVitLonManager.Models
         [NotMapped]
         public decimal SubTotal => MenuItem != null ? MenuItem.Price * Quantity : 0;
 
-        public string UserId { get; set; }
+        [Required]
+        [Column(TypeName = "nvarchar(450)")]
+        public string UserId { get; set; } = string.Empty;
+        
+        public int? UserCartId { get; set; }
+        
+        [ForeignKey("UserCartId")]
+        public UserCart? UserCart { get; set; }
     }
 }

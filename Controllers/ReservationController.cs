@@ -33,7 +33,13 @@ namespace QuanVitLonManager.Controllers
                 AvailableTables = availableTables,
                 Reservation = new Reservation
                 {
-                    ReservationTime = DateTime.Now.AddHours(1)
+                    ReservationTime = DateTime.Now.AddHours(1),
+                    UserId = User.Identity.IsAuthenticated ? _userManager.GetUserId(User) : string.Empty,
+                    TableId = 0,
+                    NumberOfGuests = 1,
+                    Notes = "Không có ghi chú",
+                    Status = ReservationStatus.Pending,
+                    CreatedAt = DateTime.Now
                 }
             };
 
@@ -61,39 +67,55 @@ namespace QuanVitLonManager.Controllers
         {
             if (ModelState.IsValid)
             {
-                // Kiểm tra xem bàn có sẵn không
-                var table = await _context.Tables.FindAsync(model.Reservation.TableId);
-                if (table == null || table.Status != TableStatus.Available)
+                var selectedTable = await _context.Tables.FindAsync(model.Reservation.TableId);
+                if (selectedTable == null || selectedTable.Status != TableStatus.Available)
                 {
                     ModelState.AddModelError("", "Bàn đã được đặt hoặc không tồn tại.");
                     return View("Index", model);
                 }
 
                 // Kiểm tra xem bàn đã được đặt trong khoảng thời gian này chưa
-                var reservationTime = model.Reservation.ReservationTime;
-                var reservationEndTime = reservationTime.AddHours(2); // Giả sử mỗi lần đặt bàn kéo dài 2 giờ
+                var requestedTime = model.Reservation.ReservationTime;
+                var requestedEndTime = requestedTime.AddHours(2); // Giả sử mỗi lần đặt bàn kéo dài 2 giờ
                 
-                var existingReservation = await _context.Reservations
+                var hasConflict = await _context.Reservations
                     .Where(r => r.TableId == model.Reservation.TableId)
                     .Where(r => r.Status != ReservationStatus.Cancelled)
-                    .Where(r => (r.ReservationTime <= reservationTime && reservationTime <= r.ReservationTime.AddHours(2)) ||
-                                (r.ReservationTime <= reservationEndTime && reservationEndTime <= r.ReservationTime.AddHours(2)))
+                    .Where(r => (r.ReservationTime <= requestedTime && requestedTime <= r.ReservationTime.AddHours(2)) ||
+                                (r.ReservationTime <= requestedEndTime && requestedEndTime <= r.ReservationTime.AddHours(2)))
                     .AnyAsync();
 
-                if (existingReservation)
+                if (hasConflict)
                 {
                     ModelState.AddModelError("", "Bàn đã được đặt trong khoảng thời gian này.");
                     return View("Index", model);
                 }
 
-                // Nếu người dùng đã đăng nhập, lưu thông tin đặt bàn
                 if (User.Identity.IsAuthenticated)
                 {
-                    model.Reservation.UserId = _userManager.GetUserId(User);
-                    model.Reservation.Status = ReservationStatus.Pending;
-                    model.Reservation.CreatedAt = DateTime.Now;
+                    var userId = _userManager.GetUserId(User);
+                    var user = await _userManager.FindByIdAsync(userId);
+                    
+                    if (user == null)
+                    {
+                        ModelState.AddModelError("", "Không tìm thấy thông tin người dùng.");
+                        return View("Index", model);
+                    }
 
-                    _context.Add(model.Reservation);
+                    var reservation = new Reservation
+                    {
+                        UserId = userId,
+                        User = user,
+                        TableId = model.Reservation.TableId,
+                        Table = selectedTable,
+                        ReservationTime = model.Reservation.ReservationTime,
+                        NumberOfGuests = model.Reservation.NumberOfGuests,
+                        Notes = model.Reservation.Notes ?? "Không có ghi chú",
+                        Status = ReservationStatus.Pending,
+                        CreatedAt = DateTime.Now
+                    };
+
+                    _context.Add(reservation);
                     await _context.SaveChangesAsync();
 
                     TempData["SuccessMessage"] = "Đặt bàn thành công! Chúng tôi sẽ xác nhận sớm.";
@@ -123,20 +145,35 @@ namespace QuanVitLonManager.Controllers
             // Lấy thông tin đặt bàn từ session sau khi đăng nhập
             if (TempData["ReservationData"] is string reservationJson)
             {
-                var reservation = System.Text.Json.JsonSerializer.Deserialize<Reservation>(reservationJson);
+                var reservationData = System.Text.Json.JsonSerializer.Deserialize<Reservation>(reservationJson);
                 
                 // Kiểm tra lại xem bàn còn trống không
-                var table = await _context.Tables.FindAsync(reservation.TableId);
-                if (table == null || table.Status != TableStatus.Available)
+                var selectedTable = await _context.Tables.FindAsync(reservationData.TableId);
+                if (selectedTable == null || selectedTable.Status != TableStatus.Available)
                 {
                     TempData["ErrorMessage"] = "Bàn đã được đặt hoặc không tồn tại.";
                     return RedirectToAction(nameof(Index));
                 }
 
-                // Lưu thông tin đặt bàn
-                reservation.UserId = _userManager.GetUserId(User);
-                reservation.Status = ReservationStatus.Pending;
-                reservation.CreatedAt = DateTime.Now;
+                var userId = _userManager.GetUserId(User);
+                var user = await _userManager.FindByIdAsync(userId);
+                
+                if (user == null)
+                {
+                    TempData["ErrorMessage"] = "Không tìm thấy thông tin người dùng.";
+                    return RedirectToAction(nameof(Index));
+                }
+
+                var reservation = new Reservation
+                {
+                    UserId = userId,
+                    TableId = reservationData.TableId,
+                    ReservationTime = reservationData.ReservationTime,
+                    NumberOfGuests = reservationData.NumberOfGuests,
+                    Notes = reservationData.Notes ?? "Không có ghi chú",
+                    Status = ReservationStatus.Pending,
+                    CreatedAt = DateTime.Now
+                };
 
                 _context.Add(reservation);
                 await _context.SaveChangesAsync();
@@ -145,6 +182,7 @@ namespace QuanVitLonManager.Controllers
                 return RedirectToAction(nameof(MyReservations));
             }
 
+            TempData["ErrorMessage"] = "Không tìm thấy thông tin đặt bàn.";
             return RedirectToAction(nameof(Index));
         }
 

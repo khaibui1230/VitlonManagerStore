@@ -1,6 +1,8 @@
+@using QuanVitLonManager.Models
 @model IEnumerable<DishOrder>
 @{
     ViewData["Title"] = "Quản lý đơn hàng";
+    Layout = "_Layout";
     // Group orders by OrderId and TableNumber
     var groupedOrders = Model
         .Where(o => o.OrderId.HasValue)
@@ -23,7 +25,7 @@
     }
 
     <div class="mb-3">
-        <a asp-action="Create" class="btn btn-primary">
+        <a asp-area="Staff" asp-controller="StaffOrder" asp-action="Create" class="btn btn-primary">
             <i class="fas fa-plus"></i> Tạo đơn hàng mới
         </a>
         <button id="refreshOrdersBtn" class="btn btn-outline-secondary">
@@ -54,7 +56,7 @@
                             </span>
                             @if (group.Key.Status != OrderStatus.Billing && group.Key.Status != OrderStatus.Completed)
                             {
-                                <a asp-action="Edit" asp-route-id="@group.Key.OrderId" class="btn btn-sm btn-info me-1">
+                                <a asp-area="Staff" asp-controller="StaffOrder" asp-action="Edit" asp-route-id="@group.Key.OrderId" class="btn btn-sm btn-info me-1">
                                     <i class="fas fa-edit"></i> Sửa đơn
                                 </a>
                                 <button class="btn btn-sm btn-warning" onclick="updateOrderTableStatus(@group.Key.OrderId, 'Billing')">
@@ -63,7 +65,7 @@
                             }
                             @if (group.Key.Status == OrderStatus.Billing)
                             {
-                                <a asp-action="Edit" asp-route-id="@group.Key.OrderId" class="btn btn-sm btn-info me-1">
+                                <a asp-area="Staff" asp-controller="StaffOrder" asp-action="Edit" asp-route-id="@group.Key.OrderId" class="btn btn-sm btn-info me-1">
                                     <i class="fas fa-edit"></i> Sửa đơn
                                 </a>
                                 <button class="btn btn-sm btn-success" onclick="updateOrderTableStatus(@group.Key.OrderId, 'Completed')">
@@ -75,8 +77,8 @@
                                 <a href="@Url.Action("PrintBill", new { id = group.Key.OrderId })" class="btn btn-sm btn-info me-1">
                                     <i class="fas fa-print"></i> In hóa đơn
                                 </a>
-                                <a href="@Url.Action("Details", "CustomerBill", new { id = group.Key.OrderId })" class="btn btn-sm btn-success">
-                                    <i class="fas fa-receipt"></i> Hóa đơn khách hàng
+                                <a href="/CustomerBill/Details/@group.Key.OrderId" class="btn btn-sm btn-success">
+                                    <i class="fas fa-receipt me-1"></i> Hóa đơn khách hàng
                                 </a>
                             }
                         </div>
@@ -255,7 +257,7 @@
             }
 
             $.ajax({
-                url: '@Url.Action("UpdateStatus")',
+                url: '@Url.Action("UpdateStatus", "StaffOrder", new { area = "Staff" })',
                 type: 'POST',
                 data: { id: orderId, status: status },
                 success: function(result) {
@@ -318,7 +320,7 @@
         
         function refreshOrders() {
             $.ajax({
-                url: '@Url.Action("GetLatestOrders")',
+                url: '@Url.Action("GetLatestOrders", "StaffOrder", new { area = "Staff" })',
                 type: 'GET',
                 success: function(result) {
                     $('#ordersList').html(result);

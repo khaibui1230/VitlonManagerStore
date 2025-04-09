@@ -1,4 +1,3 @@
-
 # 🍗 Quán Vịt Lộn Manager
 
 ![.NET Core](https://img.shields.io/badge/.NET%20Core-9.0-blue)
@@ -130,6 +129,5 @@ Mọi đóng góp đều được chào đón! Hãy:
 
 Khải Bùi - [@khaibui1230](https://github.com/khaibui1230) - khaibui0402@gmail.com
 
-Project Link: [https://github.com/khaibui1230/VitlonManagerStore](https://github.com/khaibui1230/VitlonManagerStore) 
-=======
+Project Link: [https://github.com/khaibui1230/VitlonManagerStore](https://github.com/khaibui1230/VitlonManagerStore)
 

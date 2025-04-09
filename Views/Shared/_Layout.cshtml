@@ -7,7 +7,7 @@
     <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
     <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/QuanVitLonManager.styles.css" asp-append-version="true" />
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
     <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&family=Montserrat:wght@400;500;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
     @await RenderSectionAsync("Styles", required: false)
@@ -59,33 +59,28 @@
                             </li>
                         </ul>
                     }
-                    @if (User.IsInRole("NhanVien") && !User.IsInRole("Chef"))
+                    @if (User.IsInRole("Staff") && !User.IsInRole("Chef"))
                     {
                         <!-- Staff-only navigation -->
                         <ul class="navbar-nav mx-auto">
                             <li class="nav-item">
-                                <a class="nav-link text-dark fw-bold mx-2" asp-controller="StaffOrder" asp-action="Index">
+                                <a class="nav-link text-dark fw-bold mx-2" asp-area="Staff" asp-controller="StaffOrder" asp-action="Index">
                                     <i class="fas fa-clipboard-list"></i> QUẢN LÝ ĐƠN HÀNG
                                 </a>
                             </li>
                             <li class="nav-item">
-                                <a class="nav-link text-dark fw-bold mx-2" asp-controller="StaffOrder" asp-action="Create">
-                                    <i class="fas fa-plus-circle"></i> TẠO ĐƠN HÀNG MỚI
+                                <a class="nav-link text-dark fw-bold mx-2" asp-area="Staff" asp-controller="StaffOrder" asp-action="Create">
+                                    <i class="fas fa-plus-circle"></i> TẠO ĐƠN MỚI
                                 </a>
                             </li>
                             <li class="nav-item">
-                                <a class="nav-link text-dark fw-bold mx-2" asp-area="Staff" asp-controller="StaffOrder" asp-action="Orders">
-                                    <i class="fas fa-money-bill-wave"></i> QUẢN LÝ THANH TOÁN
-                                </a>
-                            </li>
-                            <li class="nav-item">
-                                <a class="nav-link text-dark fw-bold mx-2" asp-controller="Chef" asp-action="Index">
-                                    <i class="fas fa-utensils"></i> BẾP
+                                <a class="nav-link text-dark fw-bold mx-2" asp-area="" asp-controller="Chef" asp-action="Index">
+                                    <i class="fas fa-utensils"></i> THEO DÕI BẾP
                                 </a>
                             </li>
                         </ul>
                     }
-                    @if (!User.IsInRole("NhanVien") && !User.IsInRole("Chef"))
+                    @if (!User.IsInRole("Staff") && !User.IsInRole("Chef"))
                     {
                         <!-- Regular customer navigation -->
                         <ul class="navbar-nav mx-auto">
@@ -116,7 +111,7 @@
                     <!-- Keep the cart and login partial -->
                     <div class="d-flex align-items-center">
                         <!-- Only show cart for non-staff users -->
-                        @if (!User.IsInRole("NhanVien") && !User.IsInRole("Chef"))
+                        @if (!User.IsInRole("Staff") && !User.IsInRole("Chef"))
                         {
                             <a class="nav-link position-relative me-3" asp-area="" asp-controller="Cart" asp-action="Index">
                                 <i class="fas fa-shopping-cart fa-lg"></i>

@@ -6,20 +6,39 @@ namespace QuanVitLonManager.Models
 {
     public class ChefDashboardViewModel
     {
-        public List<ChefDishItem> DishItems { get; set; }
-        public string FilterStatus { get; set; }
+        [Required]
+        public required List<DishItemViewModel> DishItems { get; set; } = new();
+        
+        [Required]
+        public required string FilterStatus { get; set; }
+        
         public DateTime LastRefreshTime { get; set; } = DateTime.Now;
     }
 
-    public class ChefDishItem
+    public class DishItemViewModel
     {
+        [Required]
         public int DishId { get; set; }
-        public string DishName { get; set; }
+        
+        [Required]
+        public required string DishName { get; set; }
+        
+        [Required]
         public int TotalQuantity { get; set; }
-        public List<string> Notes { get; set; }
-        public string Status { get; set; }
-        public List<int> OrderIds { get; set; }
-        public List<int> DishOrderIds { get; set; }
+        
+        [Required]
+        public required List<string> Notes { get; set; } = new();
+        
+        [Required]
+        public required string Status { get; set; }
+        
+        [Required]
+        public required List<int> OrderIds { get; set; } = new();
+        
+        [Required]
+        public required List<int> DishOrderIds { get; set; } = new();
+        
+        [Required]
         public DateTime OrderTime { get; set; }
     }
 } 

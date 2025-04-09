@@ -20,12 +20,23 @@ namespace QuanVitLonManager.ViewModels
         
         [Required(ErrorMessage = "Vui lòng nhập tên khách hàng")]
         [Display(Name = "Tên khách hàng")]
-        public string CustomerName { get; set; }
+        public required string CustomerName { get; set; }
         
         [Required(ErrorMessage = "Vui lòng nhập số điện thoại")]
         [Display(Name = "Số điện thoại")]
-        [RegularExpression(@"^[0-9]{10}$", ErrorMessage = "Số điện thoại không hợp lệ")]
-        public string PhoneNumber { get; set; }
+        [Phone(ErrorMessage = "Số điện thoại không hợp lệ")]
+        public required string PhoneNumber { get; set; }
+        
+        [Required]
+        public required List<CartItemViewModel> Items { get; set; } = new();
+        
+        [Required]
+        public decimal TotalAmount { get; set; }
+        
+        public string? Notes { get; set; }
+        
+        [Required]
+        public PaymentMethod PaymentMethod { get; set; }
         
         // Xác định có yêu cầu đăng nhập hay không
         public bool RequiresLogin { get; set; } = false;

@@ -8,22 +8,51 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using Microsoft.AspNetCore.Identity;
+using Microsoft.Extensions.Logging;
 
 namespace QuanVitLonManager.Areas.Admin.Controllers
 {
     [Area("Admin")]
-    [Authorize(Roles = "QuanLy")]
+    [Authorize(Roles = "Admin")]
     public class DashboardController : Controller
     {
         private readonly ApplicationDbContext _context;
+        private readonly UserManager<ApplicationUser> _userManager;
+        private readonly ILogger<DashboardController> _logger;
 
-        public DashboardController(ApplicationDbContext context)
+        public DashboardController(
+            ApplicationDbContext context,
+            UserManager<ApplicationUser> userManager,
+            ILogger<DashboardController> logger)
         {
             _context = context;
+            _userManager = userManager;
+            _logger = logger;
         }
 
         public async Task<IActionResult> Index()
         {
+            // Log user information
+            var user = await _userManager.GetUserAsync(User);
+            if (user != null)
+            {
+                var roles = await _userManager.GetRolesAsync(user);
+                _logger.LogInformation($"User {user.Email} has roles: {string.Join(", ", roles)}");
+            }
+            else
+            {
+                _logger.LogWarning("No user found");
+                return RedirectToAction("Login", "Account", new { area = "Identity" });
+            }
+
+            // Check if user is in Admin role
+            if (!await _userManager.IsInRoleAsync(user, "Admin"))
+            {
+                _logger.LogWarning($"User {user.Email} attempted to access admin area without Admin role");
+                return Forbid();
+            }
+
             // Tạo ViewModel cho dashboard
             var dashboardViewModel = new AdminDashboardViewModel
             {
@@ -74,7 +103,12 @@ namespace QuanVitLonManager.Areas.Admin.Controllers
                         OrderCount = g.Count()
                     })
                     .OrderBy(x => x.Date)
-                    .ToListAsync()
+                    .ToListAsync(),
+                
+                // Adding required properties
+                MenuItemName = "Default Item",
+                Quantity = 0,
+                TotalAmount = 0
             };
             
             return View(dashboardViewModel);

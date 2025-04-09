@@ -5,51 +5,33 @@ namespace QuanVitLonManager.Models
 {
     public class Reservation
     {
+        [Key]
         public int Id { get; set; }
 
         [Required]
         public string UserId { get; set; }
 
-        [ForeignKey("UserId")]
-        public ApplicationUser User { get; set; }
-
         [Required]
         public int TableId { get; set; }
 
-        [ForeignKey("TableId")]
-        public Table Table { get; set; }
-
         [Required]
-        [Display(Name = "Thời gian đặt bàn")]
         public DateTime ReservationTime { get; set; }
 
         [Required]
-        [Display(Name = "Số lượng khách")]
-        [Range(1, 20)]
         public int NumberOfGuests { get; set; }
 
-        [Display(Name = "Trạng thái")]
-        public ReservationStatus Status { get; set; } = ReservationStatus.Pending;
+        [Required]
+        public ReservationStatus Status { get; set; }
 
-        [Display(Name = "Ghi chú")]
+        [Required]
+        [StringLength(1000)]
         public string Notes { get; set; }
 
-        [Display(Name = "Thời gian tạo")]
-        public DateTime CreatedAt { get; set; } = DateTime.Now;
-    }
-    
-    public enum ReservationStatus
-    {
-        [Display(Name = "Đang chờ xác nhận")]
-        Pending,
+        [Required]
+        public DateTime CreatedAt { get; set; }
 
-        [Display(Name = "Đã xác nhận")]
-        Confirmed,
-
-        [Display(Name = "Đã hoàn thành")]
-        Completed,
-
-        [Display(Name = "Đã hủy")]
-        Cancelled
+        // Navigation properties
+        public virtual ApplicationUser? User { get; set; }
+        public virtual Table? Table { get; set; }
     }
 }

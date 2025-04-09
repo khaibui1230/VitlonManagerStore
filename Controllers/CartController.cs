@@ -37,7 +37,6 @@ namespace QuanVitLonManager.Controllers
                     .Include(c => c.MenuItem)
                     .ToListAsync();
 
-                // GetOrderType đã có giá trị mặc định, không cần kiểm tra null
                 ViewBag.OrderType = _cartService.GetOrderType();
                 ViewBag.CartTotal = cartItems.Sum(item => item.MenuItem != null ? item.MenuItem.Price * item.Quantity : 0);
 
@@ -194,6 +193,42 @@ namespace QuanVitLonManager.Controllers
 
             decimal price = menuItem.Price * quantity;
             return Json(new { success = true, price });
+        }
+
+        // Add this model class at the top of your file or in a separate file
+        public class CartItemModel
+        {
+            public int MenuItemId { get; set; }
+            public int Quantity { get; set; }
+            public string Notes { get; set; }
+        }
+
+        // Then update your AddToCart action
+        [HttpPost]
+        public IActionResult AddToCart(CartItemModel model)
+        {
+            if (model == null || model.MenuItemId <= 0 || model.Quantity <= 0)
+            {
+                return Json(new { success = false, message = "Thông tin không hợp lệ" });
+            }
+
+            try
+            {
+                var menuItem = _context.MenuItems.Find(model.MenuItemId);
+                if (menuItem == null)
+                {
+                    return Json(new { success = false, message = "Không tìm thấy món ăn" });
+                }
+
+                _cartService.AddToCart(model.MenuItemId, model.Quantity, model.Notes);
+                var cartCount = _cartService.GetCart().Sum(i => i.Quantity);
+
+                return Json(new { success = true, cartCount = cartCount });
+            }
+            catch (Exception ex)
+            {
+                return Json(new { success = false, message = ex.Message });
+            }
         }
     }
 }

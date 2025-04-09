@@ -9,7 +9,7 @@ using System.Threading.Tasks;
 namespace QuanVitLonManager.Areas.Staff.Controllers
 {
     [Area("Staff")]
-    [Authorize(Roles = "QuanLy,NhanVien,Chef")]
+    [Authorize(Roles = "Admin,Staff,Chef")]
     public class ChefController : Controller
     {
         private readonly ApplicationDbContext _context;

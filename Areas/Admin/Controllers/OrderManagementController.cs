@@ -11,7 +11,7 @@ using System.Threading.Tasks;
 namespace QuanVitLonManager.Areas.Admin.Controllers
 {
     [Area("Admin")]
-    [Authorize(Roles = "QuanLy")]
+    [Authorize(Roles = "Admin")]
     public class OrderManagementController : Controller
     {
         private readonly ApplicationDbContext _context;

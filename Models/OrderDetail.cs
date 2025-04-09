@@ -5,19 +5,20 @@ namespace QuanVitLonManager.Models
 {
     public class OrderDetail
     {
+        [Key]
         public int Id { get; set; }
 
         [Required]
         public int OrderId { get; set; }
         
         [ForeignKey("OrderId")]
-        public Order Order { get; set; }
+        public Order Order { get; set; } = null!;
         
         [Required]
         public int MenuItemId { get; set; }
         
         [ForeignKey("MenuItemId")]
-        public MenuItem MenuItem { get; set; }
+        public MenuItem MenuItem { get; set; } = null!;
         
         [Required]
         [Range(1, 100)]
@@ -37,5 +38,12 @@ namespace QuanVitLonManager.Models
         
         // Ghi chú cho món ăn
         public string? Notes { get; set; }
+
+        // Computed properties for view
+        [NotMapped]
+        public string Name => MenuItem?.Name ?? string.Empty;
+
+        [NotMapped]
+        public decimal TotalPrice => Subtotal;
     }
 }

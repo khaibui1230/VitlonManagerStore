@@ -9,6 +9,7 @@ using QuanVitLonManager.Models;
 using QuanVitLonManager.Services;
 using QuanVitLonManager.ViewModels;
 using Microsoft.Extensions.Logging;
+using System.Security.Claims;
 
 namespace QuanVitLonManager.Controllers
 {
@@ -66,15 +67,19 @@ namespace QuanVitLonManager.Controllers
 
                 var viewModel = new CheckoutViewModel
                 {
-                    CartItems = cartItems,
-                    Order = new Order
+                    CustomerName = User.Identity?.Name ?? string.Empty,
+                    PhoneNumber = User.FindFirstValue(ClaimTypes.MobilePhone) ?? string.Empty,
+                    Items = cartItems.Select(item => new CartItemViewModel
                     {
-                        TotalAmount = totalAmount,
-                        Notes = orderType == CartOrderType.TakeAway ? "Mang về" : $"Ăn tại chỗ - Bàn số: {tableNumber}",
-                        OrderType = orderType == CartOrderType.TakeAway ? OrderType.TakeAway : OrderType.DineIn
-                    },
-                    // Không yêu cầu đăng nhập cho bất kỳ loại đơn hàng nào
-                    RequiresLogin = false
+                        MenuItemId = item.MenuItemId,
+                        Name = item.MenuItem.Name,
+                        Quantity = item.Quantity,
+                        UnitPrice = item.MenuItem.Price,
+                        TotalPrice = item.MenuItem.Price * item.Quantity,
+                        Notes = item.Notes
+                    }).ToList(),
+                    TotalAmount = cartItems.Sum(item => item.MenuItem.Price * item.Quantity),
+                    PaymentMethod = PaymentMethod.Cash
                 };
 
                 // Nếu đã có số bàn từ giỏ hàng, tìm Table tương ứng
@@ -144,100 +149,64 @@ namespace QuanVitLonManager.Controllers
                     return RedirectToAction("Index", "Cart");
                 }
 
-                // Tạo đơn hàng mới
+                // Create new order
+                var userId = _userManager.GetUserId(User);
                 var order = new Order
                 {
-                    UserId = User.Identity.IsAuthenticated ? _userManager.GetUserId(User) : null,
+                    UserId = userId,
                     CustomerName = model.CustomerName,
                     PhoneNumber = model.PhoneNumber,
                     OrderDate = DateTime.Now,
+                    TotalAmount = cartItems.Sum(item => item.Price * item.Quantity),
                     Status = OrderStatus.Pending,
-                    OrderType = model.Order.OrderType,
-                    TableId = model.Order.TableId,
-                    Notes = model.Order.Notes,
-                    PaymentMethod = model.Order.PaymentMethod,
-                    PaymentStatus = PaymentStatus.Unpaid,
-                    OrderDetails = new List<OrderDetail>()
+                    OrderDetails = new List<OrderDetail>(),
+                    DishOrders = new List<DishOrder>()
                 };
 
-                // Thêm chi tiết đơn hàng
-                decimal total = 0;
+                _context.Orders.Add(order);
+                await _context.SaveChangesAsync(); // Save to get the OrderId
+
+                // Add order details
                 foreach (var item in cartItems)
                 {
-                    if (item.MenuItem != null)
+                    var menuItem = await _context.MenuItems.FindAsync(item.MenuItemId);
+                    if (menuItem == null)
                     {
-                        var orderDetail = new OrderDetail
-                        {
-                            MenuItemId = item.MenuItemId,
-                            Price = item.MenuItem.Price,
-                            Quantity = item.Quantity,
-                            Notes = item.Notes
-                        };
-                        order.OrderDetails.Add(orderDetail);
-                        total += item.MenuItem.Price * item.Quantity;
+                        _logger.LogWarning("MenuItem {MenuItemId} not found", item.MenuItemId);
+                        continue;
                     }
+
+                    var orderDetail = new OrderDetail
+                    {
+                        Order = order,
+                        MenuItem = menuItem,
+                        OrderId = order.Id,
+                        MenuItemId = menuItem.Id,
+                        Quantity = item.Quantity,
+                        Price = item.Price,
+                        UnitPrice = item.Price,
+                        Subtotal = item.Price * item.Quantity,
+                        Notes = item.Notes
+                    };
+
+                    order.OrderDetails.Add(orderDetail);
+                    _context.OrderDetails.Add(orderDetail);
                 }
-                order.TotalAmount = total;
 
-                _logger.LogInformation($"Created order with {order.OrderDetails.Count} items, total: {total}");
-
-                // Lưu đơn hàng vào database
-                _context.Orders.Add(order);
                 await _context.SaveChangesAsync();
 
-                // Lấy ID đơn hàng mới tạo
-                int newOrderId = order.Id;
-                _logger.LogInformation("Order created with ID: {orderId}", newOrderId);
+                // Log order creation
+                _logger.LogInformation("Created new order {OrderId} for customer {CustomerName}", order.Id, order.CustomerName);
 
-                // Tạo DishOrders cho từng món ăn
-                foreach (var orderDetail in order.OrderDetails)
-                {
-                    var menuItem = await _context.MenuItems
-                        .FirstOrDefaultAsync(m => m.Id == orderDetail.MenuItemId);
-                        
-                    if (menuItem != null)
-                    {
-                        var dishOrder = new DishOrder
-                        {
-                            Name = menuItem.Name,
-                            Price = orderDetail.Price,
-                            TotalPrice = orderDetail.Price * orderDetail.Quantity,
-                            OrderType = order.OrderType,
-                            Notes = orderDetail.Notes,
-                            OrderTime = DateTime.Now,
-                            Status = DishOrderStatus.Pending,
-                            Quantity = orderDetail.Quantity,
-                            OrderId = order.Id,
-                            MenuItemId = menuItem.Id
-                        };
-                        
-                        _context.DishOrders.Add(dishOrder);
-                    }
-                }
-                
-                await _context.SaveChangesAsync();
-                _logger.LogInformation($"Created DishOrders for order {newOrderId}");
+                // Clear cart
+                HttpContext.Session.Remove("Cart");
 
-                // Lưu ID đơn hàng vào TempData và Session
-                TempData["LastOrderId"] = newOrderId;
-                HttpContext.Session.SetInt32("LastOrderId", newOrderId);
+                // Set success message
+                TempData["SuccessMessage"] = "Đơn hàng đã được tạo thành công!";
+                TempData["NewOrderId"] = order.Id;
 
-                // Xóa giỏ hàng
-                _cartService.ClearCart();
-
-                if (Request.Headers["X-Requested-With"] == "XMLHttpRequest")
-                {
-                    _logger.LogInformation("Returning JSON success response");
-                    return Json(new { 
-                        success = true, 
-                        message = "Đặt hàng thành công!", 
-                        orderId = newOrderId,
-                        redirectUrl = Url.Action("OrderConfirmation", "Order", new { id = newOrderId })
-                    });
-                }
-                
-                _logger.LogInformation("Redirecting to order confirmation page");
-                return RedirectToAction("OrderConfirmation", new { id = newOrderId });
+                // Redirect to order details
+                return RedirectToAction("Details", new { id = order.Id });
             }
             catch (Exception ex)
             {
@@ -258,7 +227,7 @@ namespace QuanVitLonManager.Controllers
         }
 
         // GET: Order/AnonymousOrderConfirmation/5
-        public async Task<IActionResult> AnonymousOrderConfirmation(int id, string? phoneNumber = null)
+        public async Task<IActionResult> AnonymousOrderConfirmation(int id, string phoneNumber = null)
         {
             _logger.LogInformation("AnonymousOrderConfirmation called with id={0}, phoneNumber={1}", id, phoneNumber);
             
@@ -381,7 +350,7 @@ namespace QuanVitLonManager.Controllers
         }
 
         // GET: Order/MyOrders
-        public async Task<IActionResult> MyOrders(string? phoneNumber = null)
+        public async Task<IActionResult> MyOrders(string phoneNumber = null)
         {
             // Nếu người dùng đăng nhập, lấy danh sách đơn hàng của họ
             if (User.Identity.IsAuthenticated)
@@ -447,7 +416,7 @@ namespace QuanVitLonManager.Controllers
         }
 
         // GET: Order/Details/5
-        public async Task<IActionResult> Details(int id, string? phoneNumber = null)
+        public async Task<IActionResult> Details(int id, string phoneNumber = null)
         {
             // Nếu người dùng đã đăng nhập
             if (User.Identity.IsAuthenticated)

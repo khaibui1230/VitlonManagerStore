@@ -4,139 +4,111 @@
     ViewData["Title"] = "Thực đơn";
 }
 
-<section class="food-menu-section">
+<!-- Menu Header -->
+<div class="menu-header">
     <div class="container">
-        @if (!string.IsNullOrEmpty(ViewBag.ErrorMessage))
-        {
-            <div class="alert alert-warning">
-                @ViewBag.ErrorMessage
+        <h1>Thực Đơn Đặc Biệt</h1>
+        <p class="lead">Khám phá các món ăn đặc sản từ trứng vịt lộn được chế biến theo công thức truyền thống kết hợp với phong cách hiện đại.</p>
+    </div>
+</div>
+
+<div class="container">
+    <!-- Filter Section -->
+    <div class="menu-filter">
+        <div class="row g-3">
+            <div class="col-md-4">
+                <input type="text" id="searchInput" class="form-control" placeholder="Tìm kiếm món ăn...">
             </div>
-        }
-
-        <h2 class="text-center mb-5">Thực đơn của chúng tôi</h2>
-
-        @if (Model.Categories != null && Model.Categories.Any())
-        {
-            <div class="food-menu-tabs">
-                <ul class="nav nav-tabs" id="foodTabs">
-                    <li class="nav-item">
-                        <a class="nav-link active" data-bs-toggle="tab" href="#all">Tất cả</a>
-                    </li>
+            <div class="col-md-4">
+                <select id="categoryFilter" class="form-select">
+                    <option value="">Tất cả danh mục</option>
                     @foreach (var category in Model.Categories)
                     {
-                        <li class="nav-item">
-                            <a class="nav-link" data-bs-toggle="tab" href="#category-@category.Id">@category.Name</a>
-                        </li>
+                        <option value="@category.Id">@category.Name</option>
                     }
-                </ul>
+                </select>
             </div>
-        }
-
-        <div class="tab-content mt-4">
-            <div class="tab-pane fade show active" id="all">
-                <div class="row">
-                    @if (Model.MenuItems != null && Model.MenuItems.Any())
-                    {
-                        @foreach (var item in Model.MenuItems)
-                        {
-                            <div class="col-lg-3 col-md-4 col-sm-6 mb-4">
-                                <div class="menu-item">
-                                    <a asp-action="Details" asp-route-id="@item.Id">
-                                        @if (!string.IsNullOrEmpty(item.ImageUrl))
-                                        {
-                                            <img src="@item.ImageUrl" alt="@item.Name" class="img-fluid menu-img">
-                                        }
-                                        else
-                                        {
-                                            <img src="/images/default-food.jpg" alt="@item.Name" class="img-fluid menu-img">
-                                        }
-                                        <div class="menu-item-content">
-                                            <h4>@item.Name</h4>
-                                            <p class="desc">@item.Description</p>
-                                            <div class="price-tag">
-                                                @if (item.DiscountPercentage > 0)
-                                                {
-                                                    <del>@item.OriginalPrice.ToString("N0") ₫</del>
-                                                    <span class="current-price">@item.Price.ToString("N0") ₫</span>
-                                                }
-                                                else
-                                                {
-                                                    <span class="current-price">@item.Price.ToString("N0") ₫</span>
-                                                }
-                                            </div>
-                                        </div>
-                                    </a>
-                                </div>
-                            </div>
-                        }
-                    }
-                    else
-                    {
-                        <div class="col-12 text-center">
-                            <p>Không có món ăn nào trong danh mục này.</p>
-                        </div>
-                    }
-                </div>
+            <div class="col-md-4">
+                <select id="priceFilter" class="form-select">
+                    <option value="">Tất cả giá</option>
+                    <option value="0-50000">Dưới 50.000đ</option>
+                    <option value="50000-100000">50.000đ - 100.000đ</option>
+                    <option value="100000-200000">100.000đ - 200.000đ</option>
+                    <option value="200000-1000000">Trên 200.000đ</option>
+                </select>
             </div>
-
-            @if (Model.Categories != null && Model.Categories.Any())
-            {
-                @foreach (var category in Model.Categories)
-                {
-                    <div class="tab-pane fade" id="category-@category.Id">
-                        <div class="row">
-                            @{
-                                var categoryItems = Model.MenuItems?.Where(m => m.CategoryId == category.Id).ToList();
-                            }
-                            
-                            @if (categoryItems != null && categoryItems.Any())
-                            {
-                                @foreach (var item in categoryItems)
-                                {
-                                    <div class="col-lg-3 col-md-4 col-sm-6 mb-4">
-                                        <div class="menu-item">
-                                            <a asp-action="Details" asp-route-id="@item.Id">
-                                                @if (!string.IsNullOrEmpty(item.ImageUrl))
-                                                {
-                                                    <img src="@item.ImageUrl" alt="@item.Name" class="img-fluid menu-img">
-                                                }
-                                                else
-                                                {
-                                                    <img src="/images/default-food.jpg" alt="@item.Name" class="img-fluid menu-img">
-                                                }
-                                                <div class="menu-item-content">
-                                                    <h4>@item.Name</h4>
-                                                    <p class="desc">@item.Description</p>
-                                                    <div class="price-tag">
-                                                        @if (item.DiscountPercentage > 0)
-                                                        {
-                                                            <del>@item.OriginalPrice.ToString("N0") ₫</del>
-                                                            <span class="current-price">@item.Price.ToString("N0") ₫</span>
-                                                        }
-                                                        else
-                                                        {
-                                                            <span class="current-price">@item.Price.ToString("N0") ₫</span>
-                                                        }
-                                                    </div>
-                                                </div>
-                                            </a>
-                                        </div>
-                                    </div>
-                                }
-                            }
-                            else
-                            {
-                                <div class="col-12 text-center">
-                                    <p>Không có món ăn nào trong danh mục này.</p>
-                                </div>
-                            }
-                        </div>
-                    </div>
-                }
-            }
         </div>
     </div>
-</section>
+
+    <!-- Category Pills -->
+    <div class="category-pills">
+        <div class="category-pill active" data-category="">Tất cả</div>
+        @foreach (var category in Model.Categories)
+        {
+            <div class="category-pill" data-category="@category.Id">@category.Name</div>
+        }
+    </div>
+
+    <!-- Category Sections -->
+    @foreach (var category in Model.Categories)
+    {
+        <div class="category-section mb-5">
+            <h2 class="category-title mb-4">@category.Name</h2>
+            <div class="row">
+                @{
+                    var categoryItems = Model.MenuItems.Where(m => m.CategoryId == category.Id);
+                }
+                @if (categoryItems.Any())
+                {
+                    foreach (var item in categoryItems)
+                    {
+                        <div class="col-md-4 col-sm-6 menu-item mb-4" data-category="@item.CategoryId" data-price="@item.Price">
+                            <div class="card h-100">
+                                @if (!string.IsNullOrEmpty(item.ImageUrl))
+                                {
+                                    <img src="@item.ImageUrl" class="card-img-top" alt="@item.Name">
+                                }
+                                else
+                                {
+                                    <div class="card-img-top bg-light d-flex align-items-center justify-content-center" style="height: 200px;">
+                                        <i class="fas fa-utensils fa-3x text-secondary"></i>
+                                    </div>
+                                }
+                                <div class="card-body">
+                                    <h5 class="card-title">@item.Name</h5>
+                                    <p class="card-text">@item.Description</p>
+                                    <div class="price">@item.Price.ToString("N0") VNĐ</div>
+                                </div>
+                                <div class="card-footer">
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <div class="quantity-controls">
+                                            <button type="button" class="btn btn-sm btn-outline-secondary decrease-quantity">
+                                                <i class="fas fa-minus"></i>
+                                            </button>
+                                            <input type="number" class="form-control form-control-sm quantity-input" value="1" min="1" max="99" style="width: 60px;">
+                                            <button type="button" class="btn btn-sm btn-outline-secondary increase-quantity">
+                                                <i class="fas fa-plus"></i>
+                                            </button>
+                                        </div>
+                                        <button type="button" class="btn btn-add add-to-cart-btn" data-item-id="@item.Id" data-item-name="@item.Name">
+                                            <i class="fas fa-cart-plus me-1"></i> Thêm
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    }
+                }
+                else
+                {
+                    <div class="col-12">
+                        <p class="text-muted">Hiện không có món ăn nào trong danh mục này.</p>
+                    </div>
+                }
+            </div>
+        </div>
+    }
+</div>
 
 @section Styles {
     <style>

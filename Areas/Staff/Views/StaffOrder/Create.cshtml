@@ -1,0 +1,365 @@
+@using QuanVitLonManager.Models
+@using QuanVitLonManager.ViewModels
+@model StaffOrderViewModel
+@{
+    ViewData["Title"] = "Tạo đơn hàng mới";
+    Layout = "_Layout";
+}
+
+<div class="container-fluid">
+    <div class="row">
+        <!-- Phần menu bên trái -->
+        <div class="col-md-8 col-lg-9 order-md-2">
+            <div class="card mb-3">
+                <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+                    <div class="row align-items-center flex-grow-1 g-2">
+                        <div class="col-12 col-md-4 mb-2 mb-md-0">
+                            <select id="categorySelect" class="form-select">
+                                <option value="">Tất cả danh mục</option>
+                                @foreach (var category in Model.Categories)
+                                {
+                                    <option value="@category.Value">@category.Text</option>
+                                }
+                            </select>
+                        </div>
+                        <div class="col-12 col-md-8">
+                            <div class="input-group">
+                                <span class="input-group-text"><i class="fas fa-search"></i></span>
+                                <input type="text" id="searchInput" class="form-control" placeholder="Tìm kiếm món ăn...">
+                            </div>
+                        </div>
+                    </div>
+                    <button id="toggleMenuBtn" class="btn btn-light btn-sm d-md-none ms-2">
+                        <i class="fas fa-chevron-up"></i>
+                    </button>
+                </div>
+                <div class="card-body" id="menuSection">
+                    <div class="row g-2" id="menuItemsGrid">
+                        <!-- Menu items will be loaded here -->
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Phần đơn hàng bên phải -->
+        <div class="col-md-4 col-lg-3 order-md-1">
+            <div class="card sticky-top" style="top: 1rem;">
+                <div class="card-header bg-success text-white">
+                    <h5 class="mb-0">Đơn hàng đang tạo</h5>
+                </div>
+                <div class="card-body">
+                    <form id="orderForm" asp-area="Staff" asp-controller="StaffOrder" asp-action="Create" method="post">
+                        <div class="mb-3">
+                            <label class="form-label">Loại đơn hàng</label>
+                            <div class="btn-group w-100" role="group">
+                                <input type="radio" class="btn-check" name="OrderType" id="dineIn" value="@OrderType.DineIn" checked>
+                                <label class="btn btn-outline-primary" for="dineIn">Ăn tại quán</label>
+                                
+                                <input type="radio" class="btn-check" name="OrderType" id="takeAway" value="@OrderType.TakeAway">
+                                <label class="btn btn-outline-primary" for="takeAway">Mang về</label>
+                            </div>
+                        </div>
+
+                        <div class="mb-3" id="tableNumberContainer">
+                            <label class="form-label">Số bàn</label>
+                            <input type="text" class="form-control" name="TableNumber" placeholder="Nhập số bàn">
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label">Ghi chú chung</label>
+                            <textarea class="form-control" name="Note" rows="2" placeholder="Ghi chú chung cho đơn hàng..."></textarea>
+                        </div>
+
+                        <div id="orderItems" class="mb-3">
+                            <!-- Order items will be added here -->
+                        </div>
+
+                        <div class="border-top pt-3">
+                            <h4 class="text-end mb-3">
+                                Tổng cộng: <span id="grandTotal" class="text-primary">0 đ</span>
+                            </h4>
+                            <button type="submit" class="btn btn-success w-100" id="submitOrder">
+                                <i class="fas fa-check-circle"></i> Xác nhận đơn hàng
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Styles {
+    <style>
+        .menu-item {
+            cursor: pointer;
+            transition: all 0.2s;
+            border: 1px solid #dee2e6;
+            border-radius: 0.5rem;
+            padding: 1rem;
+            text-align: center;
+            background: white;
+        }
+
+        .menu-item:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 0.5rem 1rem rgba(0,0,0,0.15);
+        }
+
+        .menu-item.selected {
+            background-color: #e7f5ff;
+            border-color: #74c0fc;
+        }
+
+        .quantity-control {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .quantity-btn {
+            width: 30px;
+            height: 30px;
+            padding: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .order-item {
+            border-bottom: 1px solid #dee2e6;
+            padding: 0.5rem 0;
+        }
+
+        .order-item:last-child {
+            border-bottom: none;
+        }
+
+        @@media (max-width: 768px) {
+            #menuSection {
+                transition: all 0.3s ease;
+            }
+            
+            #menuSection.collapsed {
+                display: none;
+            }
+            
+            #toggleMenuBtn i {
+                transition: transform 0.3s ease;
+            }
+            
+            #toggleMenuBtn i.rotated {
+                transform: rotate(180deg);
+            }
+        }
+    </style>
+}
+
+@section Scripts {
+    <script>
+        $(document).ready(function() {
+            let orderItems = [];
+            let menuItems = [];
+            let searchTimeout;
+
+            // Toggle table number field based on order type
+            $('input[name="OrderType"]').change(function() {
+                if ($(this).val() === '@OrderType.DineIn.ToString()') {
+                    $('#tableNumberContainer').show();
+                } else {
+                    $('#tableNumberContainer').hide();
+                    $('input[name="TableNumber"]').val('');
+                }
+            });
+
+            // Load danh sách món ăn
+            function loadMenuItems() {
+                const categoryId = $('#categorySelect').val();
+                const searchTerm = $('#searchInput').val();
+                
+                $.getJSON('@Url.Action("GetMenuItems", "StaffOrder", new { area = "Staff" })', { categoryId, searchTerm })
+                    .done(function(data) {
+                        menuItems = data;
+                        renderMenuItems();
+                    })
+                    .fail(function(error) {
+                        console.error("Error loading menu items:", error);
+                        alert("Lỗi khi tải danh sách món ăn. Vui lòng thử lại.");
+                    });
+            }
+
+            function renderMenuItems() {
+                const container = $('#menuItemsGrid');
+                container.empty();
+
+                menuItems.forEach(item => {
+                    const isSelected = orderItems.some(oi => oi.menuItemId === item.id);
+                    container.append(`
+                        <div class="col-6 col-md-4 col-lg-3">
+                            <div class="menu-item ${isSelected ? 'selected' : ''}" 
+                                 data-id="${item.id}" 
+                                 data-name="${item.name}" 
+                                 data-price="${item.price}">
+                                <h6 class="mb-1">${item.name}</h6>
+                                <small class="text-muted">${formatCurrency(item.price)} đ</small>
+                            </div>
+                        </div>
+                    `);
+                });
+
+                // Bind click events
+                $('.menu-item').click(function() {
+                    const id = $(this).data('id');
+                    const name = $(this).data('name');
+                    const price = $(this).data('price');
+
+                    const existingItem = orderItems.find(item => item.menuItemId === id);
+                    if (existingItem) {
+                        existingItem.quantity += 1;
+                    } else {
+                        orderItems.push({
+                            menuItemId: id,
+                            name: name,
+                            price: price,
+                            quantity: 1,
+                            itemNote: ""
+                        });
+                    }
+
+                    renderOrderItems();
+                    renderMenuItems();
+                });
+            }
+
+            function renderOrderItems() {
+                const container = $('#orderItems');
+                container.empty();
+
+                orderItems.forEach((item, index) => {
+                    container.append(`
+                        <div class="order-item">
+                            <input type="hidden" name="OrderItems[${index}].MenuItemId" value="${item.menuItemId}">
+                            <input type="hidden" name="OrderItems[${index}].Name" value="${item.name}">
+                            <input type="hidden" name="OrderItems[${index}].Price" value="${item.price}">
+                            
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <h6 class="mb-0">${item.name}</h6>
+                                <button type="button" class="btn btn-sm btn-danger remove-item" data-index="${index}">
+                                    <i class="fas fa-times"></i>
+                                </button>
+                            </div>
+                            
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div class="quantity-control">
+                                    <button type="button" class="btn btn-sm btn-outline-secondary quantity-btn decrease" data-index="${index}">-</button>
+                                    <input type="number" class="form-control form-control-sm quantity-input" 
+                                           name="OrderItems[${index}].Quantity" 
+                                           value="${item.quantity}" min="1" style="width: 50px">
+                                    <button type="button" class="btn btn-sm btn-outline-secondary quantity-btn increase" data-index="${index}">+</button>
+                                </div>
+                                <span class="fw-bold">${formatCurrency(item.price * item.quantity)} đ</span>
+                            </div>
+                            
+                            <div class="mt-2">
+                                <input type="text" class="form-control form-control-sm item-note" 
+                                       name="OrderItems[${index}].ItemNote" 
+                                       value="${item.itemNote}" 
+                                       placeholder="Ghi chú cho món này...">
+                            </div>
+                        </div>
+                    `);
+                });
+
+                // Bind events
+                $('.quantity-btn').click(function() {
+                    const index = $(this).data('index');
+                    const input = $(`input[name="OrderItems[${index}].Quantity"]`);
+                    const currentValue = parseInt(input.val());
+                    
+                    if ($(this).hasClass('decrease')) {
+                        if (currentValue > 1) {
+                            input.val(currentValue - 1);
+                            orderItems[index].quantity = currentValue - 1;
+                        }
+                    } else {
+                        input.val(currentValue + 1);
+                        orderItems[index].quantity = currentValue + 1;
+                    }
+                    
+                    renderOrderItems();
+                    updateGrandTotal();
+                });
+
+                $('.quantity-input').on('change', function() {
+                    const index = $(this).data('index');
+                    const value = parseInt($(this).val()) || 1;
+                    orderItems[index].quantity = value;
+                    renderOrderItems();
+                    updateGrandTotal();
+                });
+
+                $('.item-note').on('change', function() {
+                    const index = $(this).data('index');
+                    orderItems[index].itemNote = $(this).val();
+                });
+
+                $('.remove-item').click(function() {
+                    const index = $(this).data('index');
+                    orderItems.splice(index, 1);
+                    renderOrderItems();
+                    renderMenuItems();
+                    updateGrandTotal();
+                });
+
+                updateGrandTotal();
+            }
+
+            function updateGrandTotal() {
+                const total = orderItems.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+                $('#grandTotal').text(formatCurrency(total) + ' đ');
+            }
+
+            function formatCurrency(amount) {
+                return new Intl.NumberFormat('vi-VN').format(amount);
+            }
+
+            // Event handlers
+            $('#categorySelect').change(loadMenuItems);
+            $('#searchInput').on('input', function() {
+                clearTimeout(searchTimeout);
+                searchTimeout = setTimeout(loadMenuItems, 300);
+            });
+
+            $('#orderForm').on('submit', function(e) {
+                if (orderItems.length === 0) {
+                    e.preventDefault();
+                    alert('Vui lòng chọn ít nhất một món ăn');
+                    return false;
+                }
+                
+                // Kiểm tra số bàn khi chọn ăn tại quán
+                if ($('input[name="OrderType"]:checked').val() === '@OrderType.DineIn.ToString()') {
+                    const tableNumber = $('input[name="TableNumber"]').val().trim();
+                    if (!tableNumber) {
+                        e.preventDefault();
+                        alert('Vui lòng nhập số bàn khi chọn "Ăn tại quán"');
+                        return false;
+                    }
+                }
+                
+                $('#submitOrder').prop('disabled', true)
+                    .html('<i class="fas fa-spinner fa-spin"></i> Đang xử lý...');
+                return true;
+            });
+
+            // Toggle menu section on mobile
+            $('#toggleMenuBtn').click(function() {
+                $('#menuSection').toggleClass('collapsed');
+                $(this).find('i').toggleClass('rotated');
+            });
+
+            // Load initial data
+            loadMenuItems();
+        });
+    </script>
+}

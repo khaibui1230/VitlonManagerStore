@@ -1,6 +1,7 @@
 using QuanVitLonManager.Models;
 using System;
 using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations;
 
 namespace QuanVitLonManager.ViewModels
 {
@@ -13,6 +14,15 @@ namespace QuanVitLonManager.ViewModels
         public List<Order> RecentOrders { get; set; } = new List<Order>();
         public List<TopSellingItemViewModel> TopSellingItems { get; set; } = new List<TopSellingItemViewModel>();
         public List<DailyRevenueViewModel> DailyRevenue { get; set; } = new List<DailyRevenueViewModel>();
+
+        [Required]
+        public required string MenuItemName { get; set; }
+        
+        [Required]
+        public int Quantity { get; set; }
+        
+        [Required]
+        public decimal TotalAmount { get; set; }
     }
 
     public partial class TopSellingItemViewModel

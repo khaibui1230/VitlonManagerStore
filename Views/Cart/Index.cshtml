@@ -3,7 +3,11 @@
 
 @{
     ViewData["Title"] = "Giỏ hàng";
-    var orderType = (CartOrderType)ViewBag.OrderType;
+    CartOrderType orderType = CartOrderType.DineIn; // Default value
+    if (ViewBag.OrderType != null)
+    {
+        orderType = (CartOrderType)ViewBag.OrderType;
+    }
     var tableNumber = ViewBag.TableNumber ?? string.Empty;
 }
 

@@ -38,8 +38,8 @@ namespace QuanVitLonManager.Controllers
                 return NotFound("Không tìm thấy người dùng.");
             }
 
-            // Kiểm tra xem người dùng đã có quyền QuanLy chưa
-            var isAdmin = await _userManager.IsInRoleAsync(user, "QuanLy");
+            // Kiểm tra xem người dùng đã có quyền Admin chưa
+            var isAdmin = await _userManager.IsInRoleAsync(user, "Admin");
             if (isAdmin)
             {
                 TempData["Error"] = "Bạn đã có quyền quản trị.";
@@ -49,7 +49,7 @@ namespace QuanVitLonManager.Controllers
             // Kiểm tra xem có quản trị viên nào khác không
             // Chỉ cho phép cấp quyền nếu có ít nhất một quản trị viên khác đã tồn tại
             // hoặc nếu đây là người dùng đầu tiên (không có người dùng nào có quyền quản trị)
-            var admins = await _userManager.GetUsersInRoleAsync("QuanLy");
+            var admins = await _userManager.GetUsersInRoleAsync("Admin");
             if (admins.Count > 0)
             {
                 // Nếu đã có quản trị viên, chỉ quản trị viên hiện tại mới có thể cấp quyền
@@ -57,14 +57,14 @@ namespace QuanVitLonManager.Controllers
                 return RedirectToAction(nameof(CheckAdminStatus));
             }
 
-            // Đảm bảo role QuanLy tồn tại
-            if (!await _roleManager.RoleExistsAsync("QuanLy"))
+            // Đảm bảo role Admin tồn tại
+            if (!await _roleManager.RoleExistsAsync("Admin"))
             {
-                await _roleManager.CreateAsync(new IdentityRole("QuanLy"));
+                await _roleManager.CreateAsync(new IdentityRole("Admin"));
             }
 
-            // Thêm quyền QuanLy cho người dùng
-            var result = await _userManager.AddToRoleAsync(user, "QuanLy");
+            // Thêm quyền Admin cho người dùng
+            var result = await _userManager.AddToRoleAsync(user, "Admin");
             if (result.Succeeded)
             {
                 // Refresh lại đăng nhập để cập nhật claims
@@ -93,14 +93,14 @@ namespace QuanVitLonManager.Controllers
                 return NotFound("Không tìm thấy người dùng.");
             }
 
-            // Kiểm tra xem người dùng có quyền QuanLy không
-            if (!await _userManager.IsInRoleAsync(user, "QuanLy"))
+            // Kiểm tra xem người dùng có quyền Admin không
+            if (!await _userManager.IsInRoleAsync(user, "Admin"))
             {
                 TempData["Error"] = "Bạn không có quyền truy cập trang này.";
                 return RedirectToAction("Index", "Home");
             }
 
-            var isAdmin = await _userManager.IsInRoleAsync(user, "QuanLy");
+            var isAdmin = await _userManager.IsInRoleAsync(user, "Admin");
             var roles = await _userManager.GetRolesAsync(user);
 
             return View("AdminInfo", new AdminInfoViewModel
@@ -126,17 +126,17 @@ namespace QuanVitLonManager.Controllers
                 return NotFound("Không tìm thấy người dùng.");
             }
 
-            // Kiểm tra xem người dùng có quyền QuanLy không
-            if (!await _userManager.IsInRoleAsync(user, "QuanLy"))
+            // Kiểm tra xem người dùng có quyền Admin không
+            if (!await _userManager.IsInRoleAsync(user, "Admin"))
             {
                 TempData["Error"] = "Bạn không có quyền truy cập trang này.";
                 return RedirectToAction("Index", "Home");
             }
 
             // Đảm bảo các vai trò cần thiết tồn tại
-            if (!await _roleManager.RoleExistsAsync("NhanVien"))
+            if (!await _roleManager.RoleExistsAsync("Staff"))
             {
-                await _roleManager.CreateAsync(new IdentityRole("NhanVien"));
+                await _roleManager.CreateAsync(new IdentityRole("Staff"));
             }
             if (!await _roleManager.RoleExistsAsync("Chef"))
             {
@@ -144,8 +144,8 @@ namespace QuanVitLonManager.Controllers
             }
 
             // Lấy các vai trò hiện tại của người dùng
-            var isAdmin = await _userManager.IsInRoleAsync(user, "QuanLy");
-            var isStaff = await _userManager.IsInRoleAsync(user, "NhanVien");
+            var isAdmin = await _userManager.IsInRoleAsync(user, "Admin");
+            var isStaff = await _userManager.IsInRoleAsync(user, "Staff");
             var isChef = await _userManager.IsInRoleAsync(user, "Chef");
             var roles = await _userManager.GetRolesAsync(user);
 
@@ -175,14 +175,14 @@ namespace QuanVitLonManager.Controllers
                 return NotFound("Không tìm thấy người dùng.");
             }
 
-            // Kiểm tra xem người dùng có quyền QuanLy không
-            if (!await _userManager.IsInRoleAsync(user, "QuanLy"))
+            // Kiểm tra xem người dùng có quyền Admin không
+            if (!await _userManager.IsInRoleAsync(user, "Admin"))
             {
                 TempData["Error"] = "Bạn không có quyền thực hiện chức năng này.";
                 return RedirectToAction("Index", "Home");
             }
 
-            if (role != "NhanVien" && role != "Chef")
+            if (role != "Staff" && role != "Chef")
             {
                 TempData["Error"] = "Vai trò không hợp lệ.";
                 return RedirectToAction("ManageStaffRoles");

@@ -10,7 +10,7 @@ using System.Threading.Tasks;
 
 namespace QuanVitLonManager.Controllers
 {
-    [Authorize(Roles = "QuanLy,NhanVien,Chef")]
+    [Authorize(Roles = "Admin,Staff,Chef")]
     public class ChefController : Controller
     {
         private readonly ApplicationDbContext _context;
@@ -60,7 +60,7 @@ namespace QuanVitLonManager.Controllers
             // Group dishes by name, notes and status
             var groupedDishes = dishOrders
                 .GroupBy(d => new { d.MenuItemId, d.Name, d.Notes, d.Status })
-                .Select(g => new ChefDishItem
+                .Select(g => new DishItemViewModel
                 {
                     DishId = g.Key.MenuItemId ?? 0,
                     DishName = g.Key.Name,

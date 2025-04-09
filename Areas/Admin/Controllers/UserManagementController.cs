@@ -9,7 +9,7 @@ using System.Collections.Generic;
 namespace QuanVitLonManager.Areas.Admin.Controllers
 {
     [Area("Admin")]
-    [Authorize(Roles = "QuanLy")]
+    [Authorize(Roles = "Admin")]
     public class UserManagementController : Controller
     {
         private readonly UserManager<ApplicationUser> _userManager;

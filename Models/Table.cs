@@ -1,38 +1,30 @@
 using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
 
 namespace QuanVitLonManager.Models
 {
     public class Table
     {
+        [Key]
         public int Id { get; set; }
 
         [Required]
-        [Display(Name = "Số bàn")]
+        [StringLength(50)]
         public string TableNumber { get; set; }
 
-        [Display(Name = "Khu vực")]
+        [Required]
+        [StringLength(50)]
         public string Area { get; set; }
 
-        [Display(Name = "Trạng thái")]
-        public TableStatus Status { get; set; } = TableStatus.Available;
+        [Required]
+        public TableStatus Status { get; set; }
 
-        [Display(Name = "Sức chứa")]
-        [Range(1, 20)]
+        [Required]
         public int Capacity { get; set; }
 
-        // Navigation properties
-        public ICollection<Reservation> Reservations { get; set; }
-    }
-    
-    public enum TableStatus
-    {
-        [Display(Name = "Trống")]
-        Available,
-        
-        [Display(Name = "Đã đặt")]
-        Reserved,
-        
-        [Display(Name = "Đang phục vụ")]
-        Occupied
+        [Required]
+        public bool IsAvailable { get; set; }
+
+        public virtual ICollection<Reservation>? Reservations { get; set; }
     }
 }

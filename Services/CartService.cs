@@ -71,113 +71,103 @@ namespace QuanVitLonManager.Services
         public void UpdateQuantity(int menuItemId, int quantity)
         {
             var userId = _httpContextAccessor.HttpContext.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-            var cart = GetCart();
-            var existingItem = cart.FirstOrDefault(i => i.MenuItemId == menuItemId);
+            if (string.IsNullOrEmpty(userId))
+            {
+                throw new InvalidOperationException("User must be logged in to update cart");
+            }
+
+            var existingItem = _context.CartItems.FirstOrDefault(i => i.MenuItemId == menuItemId && i.UserId == userId);
 
             if (existingItem != null)
             {
                 if (quantity > 0)
                 {
                     existingItem.Quantity = quantity;
+                    _context.Update(existingItem);
                 }
                 else
                 {
-                    cart.Remove(existingItem);
+                    _context.CartItems.Remove(existingItem);
                 }
-            }
-
-            SaveCart(cart);
-            
-            // Nếu người dùng đã đăng nhập, lưu giỏ hàng vào database
-            if (HttpContext.User.Identity.IsAuthenticated)
-            {
-                SaveCartToDatabase();
+                _context.SaveChanges();
             }
         }
 
         public void UpdateItemNotes(int menuItemId, string notes)
         {
             var userId = _httpContextAccessor.HttpContext.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-            var cart = GetCart();
-            var item = cart.FirstOrDefault(item => item.MenuItemId == menuItemId);
+            if (string.IsNullOrEmpty(userId))
+            {
+                throw new InvalidOperationException("User must be logged in to update cart");
+            }
+
+            var item = _context.CartItems.FirstOrDefault(i => i.MenuItemId == menuItemId && i.UserId == userId);
 
             if (item != null)
             {
                 item.Notes = notes;
-                SaveCart(cart);
-                
-                // Nếu người dùng đã đăng nhập, lưu giỏ hàng vào database
-                if (HttpContext.User.Identity.IsAuthenticated)
-                {
-                    SaveCartToDatabase();
-                }
+                _context.Update(item);
+                _context.SaveChanges();
             }
         }
 
         public void RemoveFromCart(int menuItemId)
         {
             var userId = _httpContextAccessor.HttpContext.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-            var cart = GetCart();
-            var existingItem = cart.FirstOrDefault(i => i.MenuItemId == menuItemId);
+            if (string.IsNullOrEmpty(userId))
+            {
+                throw new InvalidOperationException("User must be logged in to remove items from cart");
+            }
+
+            var existingItem = _context.CartItems.FirstOrDefault(i => i.MenuItemId == menuItemId && i.UserId == userId);
 
             if (existingItem != null)
             {
-                cart.Remove(existingItem);
-            }
-
-            SaveCart(cart);
-            
-            // Nếu người dùng đã đăng nhập, lưu giỏ hàng vào database
-            if (HttpContext.User.Identity.IsAuthenticated)
-            {
-                SaveCartToDatabase();
+                _context.CartItems.Remove(existingItem);
+                _context.SaveChanges();
             }
         }
 
         public void SetOrderType(CartOrderType orderType)
         {
+            var userId = _httpContextAccessor.HttpContext.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (string.IsNullOrEmpty(userId))
+            {
+                throw new InvalidOperationException("User must be logged in to set order type");
+            }
+
+            // Lưu orderType vào session để xử lý ViewBag.OrderType
             HttpContext.Session.SetInt32(ORDER_TYPE_SESSION_KEY, (int)orderType);
             
-            // Cập nhật OrderType cho tất cả các items trong giỏ hàng
-            var userId = _httpContextAccessor.HttpContext.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-            var cart = GetCart();
-            foreach (var item in cart)
+            // Cập nhật OrderType cho tất cả các items trong giỏ hàng của user
+            var cartItems = _context.CartItems.Where(c => c.UserId == userId).ToList();
+            foreach (var item in cartItems)
             {
-                item.OrderType = orderType;
-            }
-            SaveCart(cart);
-            
-            // Nếu người dùng đã đăng nhập, lưu giỏ hàng vào database
-            if (HttpContext.User.Identity.IsAuthenticated)
-            {
-                SaveCartToDatabase();
+                // Note: OrderType là [NotMapped], nên không lưu vào DB
+                // Chúng ta sẽ lưu nó trong session
             }
         }
 
         public CartOrderType GetOrderType()
         {
+            // Lấy từ session
             var orderTypeInt = HttpContext.Session.GetInt32(ORDER_TYPE_SESSION_KEY);
             return orderTypeInt.HasValue ? (CartOrderType)orderTypeInt.Value : CartOrderType.DineIn;
         }
 
         public void SetTableNumber(string tableNumber)
         {
+            var userId = _httpContextAccessor.HttpContext.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (string.IsNullOrEmpty(userId))
+            {
+                throw new InvalidOperationException("User must be logged in to set table number");
+            }
+
+            // Lưu tableNumber vào session
             HttpContext.Session.SetString(TABLE_NUMBER_SESSION_KEY, tableNumber ?? string.Empty);
             
-            // Cập nhật TableNumber cho tất cả các items trong giỏ hàng
-            var userId = _httpContextAccessor.HttpContext.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-            var cart = GetCart();
-            foreach (var item in cart)
-            {
-                item.TableNumber = tableNumber;
-            }
-            SaveCart(cart);
-            
-            // Nếu người dùng đã đăng nhập, lưu giỏ hàng vào database
-            if (HttpContext.User.Identity.IsAuthenticated)
-            {
-                SaveCartToDatabase();
-            }
+            // Chúng ta không thể lưu TableNumber vào CartItem vì nó là [NotMapped]
+            // Chúng ta sẽ lưu trong session
         }
 
         public string GetTableNumber()
@@ -224,27 +214,20 @@ namespace QuanVitLonManager.Services
 
         public void ClearCart()
         {
-            HttpContext.Session.Remove(CART_SESSION_KEY);
-            
-            // Nếu người dùng đã đăng nhập, xóa giỏ hàng trong database
-            if (HttpContext.User.Identity.IsAuthenticated)
+            var userId = _httpContextAccessor.HttpContext.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (string.IsNullOrEmpty(userId))
             {
-                var userId = _userManager.GetUserId(HttpContext.User);
-                if (!string.IsNullOrEmpty(userId))
-                {
-                    var userCart = _context.UserCarts
-                        .Include(uc => uc.CartItems)
-                        .FirstOrDefault(uc => uc.UserId == userId);
-                    
-                    if (userCart != null)
-                    {
-                        _context.CartItems.RemoveRange(userCart.CartItems);
-                        userCart.CartItems.Clear();
-                        userCart.LastUpdated = DateTime.Now;
-                        _context.SaveChanges();
-                    }
-                }
+                return;
             }
+
+            var cartItems = _context.CartItems.Where(c => c.UserId == userId);
+            _context.CartItems.RemoveRange(cartItems);
+            _context.SaveChanges();
+            
+            // Xóa thông tin từ session
+            HttpContext.Session.Remove(CART_SESSION_KEY);
+            HttpContext.Session.Remove(ORDER_TYPE_SESSION_KEY);
+            HttpContext.Session.Remove(TABLE_NUMBER_SESSION_KEY);
         }
 
         private void SaveCart(List<CartItem> cart)
